@@ -30,7 +30,7 @@ L'installazione usa la **Modalità sviluppatore** ufficiale di LG: non modifica 
 
 ## Cosa ti serve
 
-- La TV e un computer (Windows, Mac o Linux) collegati **alla stessa rete** (lo stesso Wi-Fi o router).
+- La TV e un computer (Windows, Mac o Linux) **oppure un telefono Android**, collegati **alla stessa rete** (lo stesso Wi-Fi o router). Servono solo per installare l'app: dopo, CleanFrame funziona da sola sulla TV.
 - Un **account sviluppatore LG**, gratuito.
 - Il pacchetto dell'app, il file **`io.cleanframe.lg_0.6.1_all.ipk`** (passo 3).
 
@@ -97,6 +97,34 @@ ares-install -d tv io.cleanframe.lg_0.6.1_all.ipk
 ares-launch -d tv io.cleanframe.lg
 ```
 
+### Senza computer: da un telefono Android
+
+Con l'app gratuita **Termux** (un terminale per Android) puoi usare dal telefono gli stessi strumenti ufficiali LG. Il telefono deve essere sullo stesso Wi-Fi della TV. Questo metodo non è ancora stato provato su un telefono vero; su iPhone non c'è un modo comodo.
+
+1. Installa **Termux** da [F-Droid](https://f-droid.org/packages/com.termux/) o dal Play Store.
+2. Scarica sul telefono il file `.ipk` (passo 3; se scarichi lo `.zip` da GitHub, estrailo). Di solito finisce nella cartella **Download**.
+3. Apri Termux e scrivi questi comandi, uno alla volta. Gli avvisi durante l'installazione (*warning*) si possono ignorare.
+
+```bash
+pkg install -y nodejs
+```
+
+```bash
+npm install -g @webos-tools/cli
+```
+
+Questo chiede il permesso di vedere i file del telefono: rispondi **Consenti**.
+
+```bash
+termux-setup-storage
+```
+
+```bash
+cd ~/storage/downloads
+```
+
+4. Continua con i comandi del metodo precedente, da `ares-setup-device` in poi.
+
 ## Passo 5 — Primo avvio
 
 1. Premi **Home** sul telecomando e apri **CleanFrame** dall'elenco delle app.
@@ -119,7 +147,7 @@ ares-launch -d tv io.cleanframe.lg
 
 ## Tieni attiva la Modalità sviluppatore
 
-La Modalità sviluppatore dura un tempo limitato, indicato nell'app **Developer Mode** (nelle versioni recenti circa 1000 ore, una quarantina di giorni). Ogni tanto apri **Developer Mode** e premi **EXTEND** (serve la connessione a internet). Se il tempo scade, la TV rimuove CleanFrame: riattiva la modalità e reinstalla l'app (passi 2 e 4); dovrai reimpostare le preferenze.
+La Modalità sviluppatore dura un tempo limitato, indicato nell'app **Developer Mode** (nelle versioni recenti circa 1000 ore, una quarantina di giorni). Ogni tanto apri **Developer Mode** sulla TV e premi **EXTEND** (serve la connessione a internet, non il computer). Se il tempo scade, la TV rimuove CleanFrame: riattiva la modalità e reinstalla l'app (passi 2 e 4); dovrai reimpostare le preferenze.
 
 ## Aggiornare o disinstallare
 
