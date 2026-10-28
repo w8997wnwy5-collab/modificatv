@@ -1,102 +1,165 @@
-# CleanFrame
+# CleanFrame per TV LG
 
-A quieter home screen for Samsung The Frame. Your apps, a photograph and the time, with an interface made for the TV remote.
+Una schermata iniziale più tranquilla per la tua TV LG: le tue app, una fotografia e l'ora, da usare con il telecomando.
 
-![CleanFrame browser preview using the bundled Manrope font](docs/images/cleanframe-dock.jpg)
+![CleanFrame su LG: l'ora in alto a sinistra, Live TV, All apps e Settings in alto a destra, e Netflix, YouTube, Prime Video, Disney+ e Apple TV su una foto di montagne](docs/images/cleanframe-dock.jpg)
 
-I built CleanFrame for one TV: my own Samsung The Frame, running Tizen. I'm sharing the code and setup notes as a starting point for other people to build on.
+Questa è una versione di [CleanFrame](https://github.com/nthnclrk/CleanFrame) di Nathan Clark, nata per le Samsung The Frame (sistema Tizen) e qui adattata alle TV LG con **webOS**. È preparata per la **LG 50UQ75006LF** (modello 2022, webOS 22), ma dovrebbe funzionare anche su altre LG con webOS 6 o successivo.
 
-**Use it at your own risk.** Most of the work has gone into making it work well on my TV. Very little has gone into making it portable. The setup scripts reflect my computer, TV and firmware, so expect to adapt them and test the result on your own hardware.
+> **Stato:** l'app è stata provata nel browser con una TV LG simulata (centinaia di controlli automatici), ma non ancora su una TV vera. Se qualcosa non va, annota cosa vedi sullo schermo e la versione software della TV (Impostazioni → Generali → Informazioni sulla TV).
 
-I highly recommend forking it and building on top of it, ideally with a coding agent that can help you understand and adapt the setup. Start with the browser preview, make the interface your own, then work through TV installation when you're ready. Native Home/startup changes need particular care; the setup guide covers the risks and recovery steps.
+L'interfaccia dell'app è in inglese, come l'originale.
 
-## Try the interface
+## Cosa fa e cosa no
 
-You need Node.js 22.13+ (22 LTS), or 24+, and Python 3.10+ to run the browser preview.
+**Fa:**
 
-```sh
-git clone https://github.com/nthnclrk/CleanFrame.git
-cd CleanFrame
+- mostra fino a 9 app preferite su una foto, con l'ora (formato 24 ore);
+- apre le app con OK. All'inizio ci sono Netflix, YouTube, Prime Video, Disney+ e Apple TV; da **All apps** o **Settings → Apps on Home** puoi aggiungere, togliere e riordinare le app installate (per esempio RaiPlay o DAZN);
+- **Live TV** apre i canali TV; **Settings → LG** apre la Home LG e le impostazioni della TV;
+- offre 15 sfondi, layout a lista o a dock, vari caratteri e stili, e ricorda le tue scelte;
+- finché CleanFrame è in primo piano, il salvaschermo LG non copre la foto.
+
+**Non fa** (sono limiti di webOS per le app installate così):
+
+- non sostituisce il tasto **Home** del telecomando, che apre sempre la Home LG;
+- non si apre da sola quando accendi la TV;
+- per aprirla al volo usi un tasto numerico del telecomando (accesso rapido, passo 5).
+
+L'installazione usa la **Modalità sviluppatore** ufficiale di LG: non modifica il sistema della TV e l'app si può togliere quando vuoi. Come l'originale, la usi a tuo rischio.
+
+## Cosa ti serve
+
+- La TV e un computer (Windows, Mac o Linux) collegati **alla stessa rete** (lo stesso Wi-Fi o router).
+- Un **account sviluppatore LG**, gratuito.
+- Il pacchetto dell'app, il file **`io.cleanframe.lg_0.6.1_all.ipk`** (passo 3).
+
+## Passo 1 — Crea l'account sviluppatore LG
+
+1. Sul computer apri [webostv.developer.lge.com](https://webostv.developer.lge.com), scegli **Sign In** e crea un account con la tua email.
+2. Conferma l'indirizzo email dal messaggio che ricevi.
+
+## Passo 2 — Attiva la Modalità sviluppatore sulla TV
+
+1. Sulla TV apri **LG Content Store** (lo store delle app), cerca **Developer Mode** e installala.
+2. Apri **Developer Mode** e accedi con l'account del passo 1.
+3. Attiva **Dev Mode Status**. La TV chiede di riavviarsi: conferma.
+4. Riapri **Developer Mode** e attiva **Key Server**.
+5. Lascia aperta questa schermata: ti servono l'**IP** della TV e la **Passphrase** (6 caratteri; maiuscole e minuscole contano).
+
+## Passo 3 — Scarica il pacchetto
+
+Il pacchetto viene creato automaticamente su GitHub a ogni modifica:
+
+1. In questo repository apri la scheda **Actions**.
+2. Apri l'ultima esecuzione riuscita (spunta verde) di **Check and build**.
+3. In fondo alla pagina, sotto **Artifacts**, scarica **CleanFrame-LG-webOS**.
+4. Estrai lo `.zip`: dentro c'è il file `.ipk`.
+
+Se preferisci, puoi crearlo tu sul computer (vedi [Per sviluppatori](#per-sviluppatori)).
+
+## Passo 4 — Installa l'app sulla TV
+
+### Metodo semplice: webOS Dev Manager (senza comandi)
+
+1. Scarica **webOS Dev Manager** dalla [pagina delle versioni](https://github.com/webosbrew/dev-manager-desktop/releases/latest): il file `.msi` per Windows, `.dmg` per Mac, `.deb` o `.AppImage` per Linux. Installalo e aprilo.
+2. Aggiungi la TV (**Add device**) inserendo l'IP e la Passphrase che vedi in Developer Mode. Lascia il resto com'è.
+3. Nella sezione delle app premi **Install** e scegli il file `.ipk`.
+4. Al termine, CleanFrame compare tra le app della TV.
+
+### In alternativa: dalla riga di comando
+
+Serve [Node.js](https://nodejs.org). Installa gli strumenti ufficiali LG:
+
+```bash
+npm install -g @webos-tools/cli
+```
+
+Registra la TV (metti il suo IP al posto di `192.168.1.50`):
+
+```bash
+ares-setup-device -a tv -i "host=192.168.1.50" -i "port=9922" -i "username=prisoner"
+```
+
+Scarica la chiave della TV (ti chiede la Passphrase):
+
+```bash
+ares-novacom --getkey -d tv
+```
+
+Dalla cartella in cui si trova il file `.ipk`, installa e apri l'app:
+
+```bash
+ares-install -d tv io.cleanframe.lg_0.6.1_all.ipk
+```
+
+```bash
+ares-launch -d tv io.cleanframe.lg
+```
+
+## Passo 5 — Primo avvio
+
+1. Premi **Home** sul telecomando e apri **CleanFrame** dall'elenco delle app.
+2. **Accesso rapido:** con CleanFrame aperta, **tieni premuto un tasto numerico** da 1 a 8 (per esempio **1**) e conferma. Da quel momento, tenendo premuto quel numero da qualsiasi schermata, si apre CleanFrame. Tenendo premuto **0** puoi modificare gli accessi rapidi.
+3. La prima volta che apri **All apps** (in alto a destra), la TV chiede il permesso di far vedere a CleanFrame l'elenco delle app installate: **accetta**. Così puoi aggiungere qualsiasi app. Se rifiuti, CleanFrame mostra solo le app più comuni che riconosce; per ricevere di nuovo la richiesta usa **Settings → LG → Installed apps**.
+
+## Come si usa
+
+| Tasto | Cosa fa |
+| --- | --- |
+| Frecce | Spostano la selezione |
+| OK | Apre l'app o la voce selezionata |
+| Indietro | Chiude un pannello; dalla schermata principale chiede se andare alla Home LG |
+| Home | Apre la Home LG |
+| Numero tenuto premuto | Riapre CleanFrame (con l'accesso rapido del passo 5) |
+
+- In alto a destra ci sono **Live TV** (canali TV), **All apps** (tutte le app) e **Settings** (impostazioni).
+- In **Settings** trovi: Background (foto, chiaro o scuro, sfondo, rotazione degli sfondi), Layout (lista o dock), Typography (carattere), Focus (stile della selezione), **Apps on Home** (aggiungi, togli e riordina) e **LG** (Home LG, impostazioni della TV, elenco delle app).
+- Con il telecomando puntatore (Magic Remote) puoi anche puntare e cliccare.
+
+## Tieni attiva la Modalità sviluppatore
+
+La Modalità sviluppatore dura un tempo limitato, indicato nell'app **Developer Mode** (nelle versioni recenti circa 1000 ore, una quarantina di giorni). Ogni tanto apri **Developer Mode** e premi **EXTEND** (serve la connessione a internet). Se il tempo scade, la TV rimuove CleanFrame: riattiva la modalità e reinstalla l'app (passi 2 e 4); dovrai reimpostare le preferenze.
+
+## Aggiornare o disinstallare
+
+- **Aggiornare:** installa il nuovo `.ipk` nello stesso modo. Le preferenze restano.
+- **Disinstallare:** da webOS Dev Manager, oppure con `ares-install -d tv --remove io.cleanframe.lg`. Se disattivi **Dev Mode Status** nell'app Developer Mode, la TV di norma rimuove anche le app installate così.
+
+## Problemi comuni
+
+- **Dev Manager non trova la TV:** controlla che TV e computer siano sulla stessa rete, che **Key Server** sia attivo e che IP e Passphrase siano giusti.
+- **Un'app non si apre** ("The TV could not open this screen"): probabilmente non è installata su questa TV. Toglila da **Settings → Apps on Home**, oppure installala dal Content Store.
+- **In All apps mancano delle app:** forse il permesso è stato rifiutato. Prova **Settings → LG → Installed apps**.
+- **CleanFrame è sparita:** la Modalità sviluppatore è scaduta. Ripeti i passi 2 e 4.
+
+## Per sviluppatori
+
+Servono Node.js 22.13+ e Python 3.10+.
+
+```bash
 npm ci
+```
+
+```bash
 npm run dev:public
 ```
 
-Open [localhost:4795/home/](http://localhost:4795/home/). Use the arrow keys, Enter and Escape, or click the controls. App launches and Samsung screens require a TV; the preview reports that limitation when you select them.
+Apri [localhost:4795/home/](http://localhost:4795/home/): frecce, Invio ed Esc fanno da telecomando.
 
-The public preview uses the included Manrope, Geist and Newsreader fonts.
-
-## What you can change
-
-- Choose a List or Dock layout, with icons, names or both.
-- Use a photograph, light or dark background, with a simple 12-hour clock.
-- Adjust typography, focus and glass materials through the same Settings interface.
-- Choose and reorder Home apps; discover installed apps on the TV.
-- Select from fifteen wallpapers and save your preferences locally.
-
-The glass and blur are rendered ahead of time. The TV loads the finished images and uses transforms and opacity for focus feedback.
-
-## Use a coding agent
-
-Open this repo in a local coding agent and give it a bounded change:
-
-```text
-Read AGENTS.md, docs/development.md and docs/interaction-behaviour.md.
-Help me adapt CleanFrame. Start with the public-font browser preview.
-My first change is: <describe one change>.
-Preserve remote navigation, saved preferences and the ES5 runtime.
-Run the source checks and relevant browser checks. Show the result.
-This task is browser-only: do not connect to a TV, sign or install a
-package, or change Home/startup settings.
-```
-
-See [working with an agent](docs/for-agents.md) for the TV setup prompt and the distinction between UI work, app installation and native Home changes. An agent needs local computer access for TV work; a hosted chat cannot reach your TV merely by reading this repo.
-
-## Put it on a TV
-
-Use the staged [Samsung The Frame setup guide](docs/agent-tv-setup-guide.md) to understand the process used on my TV and adapt it to yours. It covers the remote's Developer Mode sequence, official Samsung tools, your own certificates and app identity, installation, visible checks and recovery.
-
-Signing supports an ignored `.local/signing.json` based on `signing.example.json`: select your SDK, existing certificate profile and your own SDK-generated app identity. See [local signing setup](docs/development.md#local-tv-tools-and-signing). The TV installation commands and native Home helper still contain reference-machine assumptions. Your agent must check the installed-app IDs and each device stage with you. Installing the app and assigning the remote Home button are separate steps.
-
-| Area | Evidence and limits |
-| --- | --- |
-| Reference hardware | Samsung QA55LS03DAWXXY / LS03D, firmware 2130.0, Tizen 9.0, 32-bit ARM |
-| App installation | Signed installation and launch commands succeeded through 0.6.1. Latest rendering and remote feel still need physical observation. |
-| App launch and Home | Netflix/YouTube launch and physical Home from Netflix were confirmed on the reference setup. |
-| Still open | Normal power-on after streaming/Art Mode, corrected Smart Hub escape and native Art Mode destinations need definite physical checks. |
-| Other TVs | No compatibility claim. This is Tizen source; Android TV, Google TV, LG webOS and Roku need their own implementations. |
-
-The detailed [device record](docs/tv-status.md) separates observed results from SDK responses. Native Home/startup uses undocumented, guarded helpers; it is optional and can fail after firmware changes. Keep a recovery baseline before attempting that work. The app can be opened manually without it.
-
-## Develop and check
-
-```sh
+```bash
 npm run check
-npm run check:tools
-npx playwright install chromium
-CLEANFRAME_PUBLIC_FONTS=1 npm run check:browser
-npm run check:public
-npm run export:public
 ```
 
-The browser checks use isolated Chromium profiles and a loopback preview. They never contact a TV. The public export creates `dist/CleanFrame-public-unsigned.wgt`, with public fonts and notices. It needs your own identity and signing before installation. It does not certify asset redistribution rights or device compatibility.
+```bash
+npm run package
+```
 
-| Location | Purpose |
-| --- | --- |
-| `app/` | Current packaged UI and runtime assets |
-| `scripts/` | Preview, validation, asset generation and reference TV tools |
-| [Development](docs/development.md) / [testing](docs/testing.md) | Runtime map, preferences, checks and device boundaries |
-| [Assets](docs/assets.md) / [third-party notices](THIRD_PARTY_NOTICES.md) | Rendering recipes, font separation and asset provenance |
-| [Asset sources](docs/asset-sources.md) | Photo credits and verification of the bundled third-party assets |
-| `.local/`, `dist/` | Ignored private setup, recovery data, generated files and packages |
+L'ultimo comando crea `dist/io.cleanframe.lg_0.6.1_all.ipk`. Con la TV registrata come `tv`, `npm run tv:install` e `npm run tv:launch` la installano e la aprono. Dettagli (in inglese) in [docs/development.md](docs/development.md), [docs/testing.md](docs/testing.md) e [docs/interaction-behaviour.md](docs/interaction-behaviour.md). GitHub Actions esegue gli stessi controlli e crea il pacchetto a ogni push.
 
-## Contribute
+## Licenza e crediti
 
-Fork it, experiment and build something that suits your TV. If you find a useful fix or improve the setup instructions, contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before a larger change. Reports should include model, firmware and the observed result, with private identifiers removed.
-
-## Licence and credits
-
-CleanFrame's original code and documentation use the [MIT licence](LICENSE). Fonts, photographs and logos retain their own terms; read [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Paid Pangram binaries are excluded from Git and public exports. A local package may include them, so keep personal builds separate from public downloads.
-
-The [release review](docs/public-release.md) records the publication checks. Third-party assets retain the terms listed in their notices. CleanFrame is an independent project with no Samsung or streaming-service affiliation.
-
-[TV Detox](https://github.com/Ansub/tv-detox) is a useful example of making an agent-assisted TV project approachable. Its Android setup is a different implementation; the prompts and instructions here are written for CleanFrame and Tizen.
+- Il codice di CleanFrame è di Nathan Clark, con [licenza MIT](LICENSE); l'adattamento a LG webOS usa la stessa licenza.
+- Il servizio che legge l'elenco delle app segue l'approccio di [Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT).
+- Caratteri, fotografie e loghi hanno le proprie licenze: vedi [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). I marchi appartengono ai rispettivi proprietari.
+- È un progetto indipendente, senza affiliazione con LG, Samsung o i servizi di streaming.
