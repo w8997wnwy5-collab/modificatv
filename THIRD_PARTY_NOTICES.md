@@ -30,7 +30,7 @@ Photographers retain their rights. Wallpapers, thumbnails, panel backgrounds and
 
 ## Adapted code
 
-The TV service in `service/service.js` follows the approach of [Free My TV](https://github.com/simbasjungles/free-my-tv)'s webOS service: asking the TV's local remote-control API for its launch points, with a `file://` origin, after the TV prompts its owner. Free My TV is MIT-licensed, © 2026 Free My TV contributors; its licence text is retained in `service/FREE-MY-TV-LICENSE.txt`, which is packaged with the service.
+The TV service in `service/service.js` follows the approach of [Free My TV](https://github.com/simbasjungles/free-my-tv)'s webOS service: asking the TV's local remote-control API for its launch points, with a `file://` origin, after the TV prompts its owner. The phone installer, `scripts/install-tv.sh`, follows the flow of Free My TV's `webos/install.py`: the Key Server key unlocked with `ssh-keygen`, a copy over SSH and `com.webos.appInstallService/dev/install`. Free My TV is MIT-licensed, © 2026 Free My TV contributors; its licence text is retained in `service/FREE-MY-TV-LICENSE.txt`, which is packaged with the service.
 
 ## Development dependencies and the LG package
 

@@ -15,7 +15,7 @@ L'interfaccia dell'app è in inglese, come l'originale.
 **Fa:**
 
 - mostra fino a 9 app preferite su una foto, con l'ora (formato 24 ore);
-- apre le app con OK. All'inizio ci sono Netflix, YouTube, Prime Video, Disney+ e Apple TV; da **All apps** o **Settings → Apps on Home** puoi aggiungere, togliere e riordinare le app installate (per esempio RaiPlay o DAZN);
+- apre le app con OK. All'inizio ci sono Netflix, YouTube, Prime Video, Disney+ e Apple TV; da **All apps** o **Settings → Apps on Home** puoi aggiungere, togliere e riordinare le app installate (anche le app svizzere che hai sulla TV);
 - **Live TV** apre i canali TV; **Settings → LG** apre la Home LG e le impostazioni della TV;
 - offre 15 sfondi, layout a lista o a dock, vari caratteri e stili, e ricorda le tue scelte;
 - finché CleanFrame è in primo piano, il salvaschermo LG non copre la foto.
@@ -30,24 +30,26 @@ L'installazione usa la **Modalità sviluppatore** ufficiale di LG: non modifica 
 
 ## Cosa ti serve
 
-- La TV e un computer (Windows, Mac o Linux) **oppure un telefono Android**, collegati **alla stessa rete** (lo stesso Wi-Fi o router). Servono solo per installare l'app: dopo, CleanFrame funziona da sola sulla TV.
+- La TV e un **iPhone o iPad**, un telefono Android o un computer (Windows, Mac o Linux), collegati **alla stessa rete** (lo stesso Wi-Fi o router). Servono solo per installare l'app: dopo, CleanFrame funziona da sola sulla TV.
 - Un **account sviluppatore LG**, gratuito.
 - Il pacchetto dell'app, il file **`io.cleanframe.lg_0.6.1_all.ipk`** (passo 3).
 
 ## Passo 1 — Crea l'account sviluppatore LG
 
-1. Sul computer apri [webostv.developer.lge.com](https://webostv.developer.lge.com), scegli **Sign In** e crea un account con la tua email.
+1. Dal telefono o dal computer apri [webostv.developer.lge.com](https://webostv.developer.lge.com), scegli **Sign In** e crea un account con la tua email. Come Paese scegli quello della TV (per esempio la Svizzera).
 2. Conferma l'indirizzo email dal messaggio che ricevi.
 
 ## Passo 2 — Attiva la Modalità sviluppatore sulla TV
 
-1. Sulla TV apri **LG Content Store** (lo store delle app), cerca **Developer Mode** e installala.
+1. Sulla TV apri **LG Content Store** (lo store delle app; la TV usa già quello del tuo Paese), cerca **Developer Mode** e installala.
 2. Apri **Developer Mode** e accedi con l'account del passo 1.
 3. Attiva **Dev Mode Status**. La TV chiede di riavviarsi: conferma.
 4. Riapri **Developer Mode** e attiva **Key Server**.
 5. Lascia aperta questa schermata: ti servono l'**IP** della TV e la **Passphrase** (6 caratteri; maiuscole e minuscole contano).
 
 ## Passo 3 — Scarica il pacchetto
+
+Con iPhone o iPad salta questo passo: lo fa lo script del passo 4.
 
 Il pacchetto viene creato automaticamente su GitHub a ogni modifica:
 
@@ -60,7 +62,29 @@ Se preferisci, puoi crearlo tu sul computer (vedi [Per sviluppatori](#per-svilup
 
 ## Passo 4 — Installa l'app sulla TV
 
-### Metodo semplice: webOS Dev Manager (senza comandi)
+### Da iPhone o iPad (senza computer)
+
+Serve l'app gratuita **iSH Shell** ([App Store svizzero](https://apps.apple.com/ch/app/ish-shell/id1436902243)), un piccolo Linux per iPhone e iPad. Lo script di questo repository fa il resto: installa gli strumenti che servono, scarica CleanFrame da GitHub, prepara il pacchetto e lo installa sulla TV. iPhone o iPad deve essere sullo stesso Wi-Fi della TV, con Developer Mode e Key Server attivi (passo 2). Lo script è stato provato con una TV simulata, non ancora con un iPhone vero.
+
+1. Installa **iSH Shell** e aprila.
+2. Scarica lo script:
+
+```bash
+wget -O cf.sh https://raw.githubusercontent.com/w8997wnwy5-collab/modificatv/HEAD/scripts/install-tv.sh
+```
+
+3. Avvialo:
+
+```bash
+sh cf.sh
+```
+
+4. Rispondi alle domande: l'**IP** della TV e la **Passphrase** che vedi in Developer Mode. La prima volta lo script installa anche gli strumenti SSH; iSH è lento, quindi può volerci qualche minuto.
+5. Se iPhone o iPad chiede di permettere a iSH di trovare dispositivi sulla rete locale, scegli **Consenti**.
+
+Alla fine CleanFrame si apre sulla TV. Per aggiornarla riesegui `sh cf.sh` (IP e chiave restano salvati); per toglierla usa `sh cf.sh --remove`.
+
+### Da computer: webOS Dev Manager (senza comandi)
 
 1. Scarica **webOS Dev Manager** dalla [pagina delle versioni](https://github.com/webosbrew/dev-manager-desktop/releases/latest): il file `.msi` per Windows, `.dmg` per Mac, `.deb` o `.AppImage` per Linux. Installalo e aprilo.
 2. Aggiungi la TV (**Add device**) inserendo l'IP e la Passphrase che vedi in Developer Mode. Lascia il resto com'è.

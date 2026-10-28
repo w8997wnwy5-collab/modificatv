@@ -49,6 +49,8 @@ Keep the app ID unchanged: an install with the same ID updates the app in place 
 
 [webOS Dev Manager](https://github.com/webosbrew/dev-manager-desktop) does the same without a terminal: add the TV with its IP address and passphrase, then install the `.ipk`.
 
+Without a computer, `scripts/install-tv.sh` does the same from a POSIX shell with OpenSSH, tar and gzip: iSH on an iPhone or iPad (where it first restores `apk`, as the [iSH wiki](https://github.com/ish-app/ish/wiki/Installing-apk-on-the-App-Store-Version) describes, and adds OpenSSH), Termux on Android, macOS or Linux. It fetches the TV's key from the Key Server and unlocks it with the passphrase (kept in `~/.ssh/cleanframe_tv_<address>`), downloads this repository's default branch from GitHub, builds the package with the same layout as `ares-package`, then copies it over SSH and calls `com.webos.appInstallService/dev/install`, following Free My TV's `webos/install.py`. `sh install-tv.sh FILE.ipk` installs a given package and `--remove` uninstalls. `CLEANFRAME_SOURCE`, `CLEANFRAME_TV_IP`, `CLEANFRAME_SSH_PORT` and `CLEANFRAME_KEY_PORT` exist for tests.
+
 ## Sources
 
 - [LG webOS TV CLI guide](https://webostv.developer.lge.com/develop/tools/webos-tv-cli-dev-guide) and [Developer Mode app](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app)
