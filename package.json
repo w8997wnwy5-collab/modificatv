@@ -1,25 +1,24 @@
 {
-  "name": "cleanframe",
+  "name": "cleanframe-lg",
   "version": "0.6.1",
   "private": true,
-  "description": "A personal, uncluttered home interface for Samsung The Frame.",
+  "description": "CleanFrame, a quiet home screen, adapted for LG webOS TVs.",
   "scripts": {
     "dev": "python3 scripts/preview.py",
-    "check": "npm run lint && python3 scripts/check.py && npm run check:device",
-    "package": "python3 scripts/package.py",
-    "tv:info": "python3 scripts/tv.py info",
-    "tv:install": "python3 scripts/tv.py install",
-    "tv:launch": "python3 scripts/tv.py launch",
-    "check:browser": "node scripts/check-browser.mjs",
     "dev:public": "python3 scripts/preview.py --public-fonts",
-    "export:public": "python3 scripts/export-public.py",
+    "check": "npm run lint && python3 scripts/check.py && npm run check:device",
+    "lint": "eslint app service",
+    "check:device": "node --test scripts/test-device.mjs scripts/test-service.mjs",
+    "check:browser": "node scripts/check-browser.mjs",
     "check:public": "python3 scripts/check-public.py",
-    "check:tools": "python3 -B scripts/test-tools.py",
-    "lint": "eslint app",
-    "check:device": "node --test scripts/test-device.mjs",
-    "check:performance": "node scripts/check-performance.mjs"
+    "check:performance": "node scripts/check-performance.mjs",
+    "package": "python3 scripts/package.py",
+    "tv:install": "node scripts/tv.mjs install",
+    "tv:launch": "node scripts/tv.mjs launch",
+    "tv:remove": "node scripts/tv.mjs remove"
   },
   "devDependencies": {
+    "@webos-tools/cli": "3.2.6",
     "eslint": "10.13.0",
     "playwright": "1.64.1"
   },

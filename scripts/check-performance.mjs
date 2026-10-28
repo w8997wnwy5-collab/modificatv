@@ -17,7 +17,7 @@ const report = {
   sourceBefore: hashes(), checks: [], warnings: [], failures: [], scenarios: [], errors: [],
   budgets: { keyP95Ms: 50, keyMaximumMs: 120, frameMaximumMs: 250, appearanceMaximumMs: 4000 },
   notes: [
-    'A 4× Chromium slowdown is a reproducible regression screen, not an emulation of the Samsung processor, GPU, decoder, memory limit or browser engine.',
+    'A 4× Chromium slowdown is a reproducible regression screen, not an emulation of the LG processor, GPU, decoder, memory limit or browser engine.',
     'Key work measures the complete production navigation handler, including render calls. Frame gaps include paint/compositing scheduling.',
     'DOM and post-GC JavaScript heap checks detect retained growth, not GPU texture allocation or total TV process memory.',
     'The localhost preview sends no-store; repeated asset transfers are reported separately from decoded-image or DOM retention.'
@@ -85,17 +85,20 @@ try {
   page.on('requestfailed', request => { if (!page.__closing && request.failure()?.errorText !== 'net::ERR_ABORTED') report.errors.push(request.failure()?.errorText + ' ' + request.url()); });
   await page.addInitScript(() => {
     const primary = [
-      ['IkWsFHtOY9.Stremio', 'Stremio'], ['org.tizen.netflix-app', 'Netflix'], ['MCmYXNxgcu.DisneyPlus', 'Disney+'],
-      ['9Ur5IzDKqV.TizenYouTube', 'YouTube'], ['com.samsung.tv.aria-video', 'Apple TV'], ['org.tizen.primevideo', 'Prime Video'],
-      ['mWK87Xghap.ABCiview', 'ABC iview'], ['OyE7OuxlUi.SBSOnDemand', 'SBS On Demand'], ['org.tizen.apple.apple-music', 'Apple Music']
+      ['netflix', 'Netflix'], ['youtube.leanback.v4', 'YouTube'], ['amazon', 'Prime Video'],
+      ['com.disney.disneyplus-prod', 'Disney+'], ['com.apple.appletv', 'Apple TV']
     ];
-    const catalogue = primary.map(([id, name]) => ({ id, name, show: true, iconPath: '' }));
-    for (let i = 0; i < 14; i++) catalogue.push({ id: 'Qa12345678.Stream' + i, name: 'Streaming app ' + String(i + 1).padStart(2, '0'), show: true, iconPath: '' });
-    window.tizen = { application: {
-      getAppsInfo(ok) { setTimeout(() => ok(catalogue), 0); },
-      launch(id, ok) { setTimeout(ok, 0); }
-    } };
-    localStorage.setItem('cleanframe.home.v1', JSON.stringify({ dock: ['stremio', 'netflix', 'disneyplus', 'youtube', 'appletv', 'primevideo', 'abciview', 'sbs', 'applemusic'], wallpaper: 'misty', mode: 'fixed', theme: 'shore', lastApp: 'netflix' }));
+    const catalogue = primary.map(([id, title]) => ({ id, title, icon: '' }));
+    for (let i = 0; i < 18; i++) catalogue.push({ id: 'com.example.stream' + i, title: 'Streaming app ' + String(i + 1).padStart(2, '0'), icon: '' });
+    // The public LG Luna boundary only: launch points are listed and launches succeed.
+    window.PalmSystem = { identifier: 'io.cleanframe.lg 1001' };
+    window.PalmServiceBridge = function () {};
+    window.PalmServiceBridge.prototype.call = function (uri) {
+      const reply = uri.endsWith('/listLaunchPoints') ? { returnValue: true, launchPoints: catalogue } : { returnValue: true };
+      setTimeout(() => this.onservicecallback(JSON.stringify(reply)), 0);
+    };
+    const extra = catalogue.slice(5, 9).map(a => ({ id: a.id, appId: a.id, name: a.title, brand: '' }));
+    localStorage.setItem('cleanframe.home.v1', JSON.stringify({ dock: ['netflix', 'youtube', 'primevideo', 'disneyplus', 'appletv'].concat(extra.map(a => a.id)), appRecords: extra, wallpaper: 'misty', mode: 'fixed', theme: 'shore', lastApp: 'netflix' }));
   });
   cdp = await page.context().newCDPSession(page);
   await cdp.send('Performance.enable');

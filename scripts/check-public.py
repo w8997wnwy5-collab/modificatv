@@ -55,7 +55,7 @@ def forbidden(name):
     path = Path(name)
     return (name.startswith(('.local/', 'dist/', 'node_modules/', 'app/assets/private-fonts/',
                                     'explorations/', 'docs/research/', 'docs/articles/'))
-            or private_path(name) or path.suffix.lower() in {'.wgt', '.dll', '.pdb', '.exe'}
+            or private_path(name) or path.suffix.lower() in {'.wgt', '.ipk', '.dll', '.pdb', '.exe'}
             or any(part.lower() in {'bin', 'obj'} for part in path.parts)
             or (path.name.startswith('PP') and path.suffix.lower() in font_suffixes))
 

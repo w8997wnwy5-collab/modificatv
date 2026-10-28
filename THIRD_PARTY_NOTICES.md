@@ -8,9 +8,9 @@ The root MIT licence covers CleanFrame's original code and documentation. Third-
 | --- | --- |
 | Manrope | SIL Open Font License 1.1; `app/assets/manrope-OFL.txt` |
 | Geist and Newsreader | SIL Open Font License 1.1; licences beside the files in `app/assets/fonts/`, with exact sources and hashes in `app/assets/fonts/SOURCES.json` |
-| Optional PP Neue Montreal, PP Mori and PP Pangram Sans | Proprietary. Binaries stay in ignored `.local/` storage and are excluded from Git and public exports. The optional local overlay requires the user's own permission to use and embed those files. |
+| Optional PP Neue Montreal, PP Mori and PP Pangram Sans | Proprietary. Binaries stay in ignored `.local/` storage and are excluded from Git and from the LG package; only the local browser preview can offer them, with the user's own permission to use those files. |
 
-The public app uses Manrope, Geist and Newsreader. A personal widget containing proprietary fonts must stay private. See [Pangram's licensing information](https://pangrampangram.com/pages/eula).
+The LG package uses Manrope, Geist and Newsreader only. See [Pangram's licensing information](https://pangrampangram.com/pages/eula).
 
 ## Icons and trademarks
 
@@ -28,8 +28,14 @@ The fifteen photo pages were individually checked on 20 October 2026. Each displ
 
 Photographers retain their rights. Wallpapers, thumbnails, panel backgrounds and material fields derive from the credited photographs and retain their terms. The Unsplash licence permits copying, modification and distribution subject to its restrictions, including on selling unmodified images and building a competing image service.
 
-## Development dependencies and exports
+## Adapted code
 
-Development dependencies retain the licences in their npm packages. They are not copied into the TV JavaScript runtime.
+The TV service in `service/service.js` follows the approach of [Free My TV](https://github.com/simbasjungles/free-my-tv)'s webOS service: asking the TV's local remote-control API for its launch points, with a `file://` origin, after the TV prompts its owner. Free My TV is MIT-licensed, © 2026 Free My TV contributors; its licence text is retained in `service/FREE-MY-TV-LICENSE.txt`, which is packaged with the service.
 
-`npm run export:public` excludes private fonts and includes this notice and the root MIT licence. Preserve the included font and icon licence texts. Review [public release preparation](docs/public-release.md) before publishing a repository or download.
+## Development dependencies and the LG package
+
+Development dependencies retain the licences in their npm packages, including LG's webOS TV CLI (`@webos-tools/cli`, Apache-2.0), which builds and installs the package. They are not copied into the TV runtime.
+
+`npm run package` packages `app/` and `service/` only, with public fonts. When sharing the `.ipk`, include this notice and the root MIT licence, as the GitHub Actions artifact does. Preserve the included font and icon licence texts.
+
+CleanFrame for LG is an independent adaptation, with no LG, Samsung or streaming-service affiliation.

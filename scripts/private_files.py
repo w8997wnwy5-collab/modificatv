@@ -1,8 +1,6 @@
 """Shared, bounded checks for private files and recognisable credentials."""
 from pathlib import PurePosixPath
 import re
-import zipfile
-from local_config import manifest_identity
 
 PRIVATE_SUFFIXES = {'.p12', '.pfx', '.pkcs12', '.jks', '.keystore', '.pem', '.key', '.csr'}
 PRIVATE_NAMES = {'profiles.xml', 'certificate-password.txt', 'session.json', '.env',
@@ -29,24 +27,3 @@ def secret_content(data):
                and re.search(rb'\bpassword\s*=', lowered))
     return bool(profile) or any(re.search(pattern, data) for pattern in SECRET_PATTERNS)
 
-
-def check_widget(path, require_signed=False):
-    """Allow public signing certificates; reject private material by name/content."""
-    with zipfile.ZipFile(path) as archive:
-        names = archive.namelist()
-        if require_signed and not {'author-signature.xml', 'signature1.xml'}.issubset(names):
-            raise ValueError('Package is missing its signing files.')
-        for name in names:
-            if private_path(name) or secret_content(archive.read(name)):
-                raise ValueError('Private material in widget: ' + name)
-
-
-def check_signed_widget(path, identity):
-    check_widget(path, require_signed=True)
-    with zipfile.ZipFile(path) as archive:
-        try:
-            actual = manifest_identity(archive.read('config.xml'))
-        except KeyError:
-            raise ValueError('Signed widget is missing config.xml.') from None
-    if actual != identity:
-        raise ValueError('Widget identity differs from the selected identity. Package again before installing.')

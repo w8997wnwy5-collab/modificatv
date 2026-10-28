@@ -1,4 +1,4 @@
-# Machine-specific tools, signing keys and device configuration
+# Machine-specific tools, keys, device configuration and built packages
 /.local/
 /dist/
 /node_modules/
@@ -23,20 +23,21 @@ certificate-password.txt
 /device.json
 /certificates/
 
-# Native helper builds can contain local paths and must stay private.
-/scripts/native-home/bin/
-/scripts/native-home/obj/
+# Compiled helpers can contain local paths and must stay private.
 *.dll
 *.pdb
 *.exe
 
-# Proprietary fonts are injected from .local/ at preview/package time.
+# Proprietary fonts are served from .local/ by the preview only.
 /app/assets/private-fonts/
 PP*.ttf
 PP*.otf
 PP*.woff
 PP*.woff2
+
+# Built TV packages belong in dist/ or a release, not in Git.
 *.wgt
+*.ipk
 
 # Personal studies, research and draft writing stay local.
 /explorations/

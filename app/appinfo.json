@@ -1,0 +1,14 @@
+{
+  "id": "io.cleanframe.lg",
+  "version": "0.6.1",
+  "vendor": "CleanFrame",
+  "type": "web",
+  "main": "index.html",
+  "title": "CleanFrame",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "bgColor": "#242722",
+  "iconColor": "#242722",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true
+}

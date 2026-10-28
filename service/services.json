@@ -1,0 +1,10 @@
+{
+  "id": "io.cleanframe.lg.service",
+  "description": "Reads the TV's app list for CleanFrame",
+  "services": [
+    {
+      "name": "io.cleanframe.lg.service",
+      "description": "Reads the TV's app list for CleanFrame"
+    }
+  ]
+}

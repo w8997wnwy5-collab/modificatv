@@ -1,15 +1,11 @@
-"""Build the exact private-font overlay used by preview and local packaging.
+"""Build the exact private-font overlay used by the browser preview.
 
 Pangram binaries remain in ignored .local/ storage. A public checkout ships
-Manrope, Geist and Newsreader. Complete local Pangram pairs are added directly
-to the widget ZIP; they are never copied into app/.
+Manrope, Geist and Newsreader. Complete local Pangram pairs are served by the
+preview only; they are never copied into app/ or into the LG package.
 """
 from pathlib import Path
 import json
-import re
-import zipfile
-from local_config import override_identity
-from private_files import check_widget, private_path, secret_content
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_FONT_IDS = ['geist', 'newsreader']
@@ -31,14 +27,6 @@ PRIVATE_FONTS = [
     },
 ]
 
-
-def is_runtime_source(name):
-    """Keep retained rendering tools and legacy layout assets out of the widget."""
-    if name in ['grid.css', 'optics.js']:
-        return False
-    if name.startswith(('assets/grid/', 'assets/vendor/')):
-        return False
-    return not re.fullmatch(r'assets/wallpapers/[^/]+-glass-\d+\.png', name)
 
 
 def font_overlay(root=ROOT, include_private=True):
@@ -64,31 +52,4 @@ def font_overlay(root=ROOT, include_private=True):
     assets['assets/font-catalog.js'] = ('window.CleanFramePrivateFontIDs = '
                                        + json.dumps(private_ids + PUBLIC_FONT_IDS) + ';\n').encode()
     return assets
-
-
-def write_widget_archive(output, root=ROOT, include_private=True, identity=None):
-    """Create an unsigned archive without reading signing or device settings."""
-    app = root / 'app'
-    overlay = font_overlay(root, include_private)
-    if identity is not None:
-        overlay['config.xml'] = override_identity((app / 'config.xml').read_bytes(), identity)
-    with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED, allowZip64=False) as package:
-        for source in sorted(app.rglob('*')):
-            if source.is_symlink():
-                raise ValueError('Widget assets must be regular files, not symlinks: ' + str(source.relative_to(app)))
-            if not source.is_file():
-                continue
-            name = source.relative_to(app).as_posix()
-            if private_path(name) or secret_content(source.read_bytes()):
-                raise ValueError('Private material in app source: ' + name)
-            if name.startswith('assets/private-fonts/'):
-                raise ValueError('Private font binaries must stay in .local/, not app/.')
-            if name not in overlay and is_runtime_source(name):
-                package.write(source, name)
-        for name, source in sorted(overlay.items()):
-            if isinstance(source, Path):
-                package.write(source, name)
-            else:
-                package.writestr(name, source)
-    check_widget(output)
 

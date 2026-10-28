@@ -1,21 +1,24 @@
-"""Check that the widget manifest and its referenced files are present."""
+"""Check that the webOS manifests and their referenced files are present."""
 from pathlib import Path
 import json
-import xml.etree.ElementTree as XML
 import re
 
 root = Path(__file__).resolve().parents[1]
 app = root / 'app'
-manifest = XML.parse(app / 'config.xml').getroot()
-ns = {'w': 'http://www.w3.org/ns/widgets', 't': 'http://tizen.org/ns/widgets'}
-identity = manifest.find('t:application', ns)
-assert identity is not None, 'Missing application identity'
-assert identity.get('package') == 'nClrkHome1', 'Keep the installed package identity stable'
-assert identity.get('id') == 'nClrkHome1.FrameHome', 'Keep the installed application ID stable'
-assert manifest.get('version') == json.loads((root / 'package.json').read_text())['version'], 'Manifest/package versions differ'
-for tag in ['content', 'icon']:
-    node = manifest.find('w:' + tag, ns)
-    assert node is not None and (app / node.get('src', '')).is_file(), 'Missing ' + tag + ' file'
+info = json.loads((app / 'appinfo.json').read_text())
+service = json.loads((root / 'service/services.json').read_text())
+version = json.loads((root / 'package.json').read_text())['version']
+# Developer Mode installs replace an app with the same ID; keep it stable across updates.
+assert info['id'] == 'io.cleanframe.lg', 'Keep the installed app ID stable'
+assert re.fullmatch(r'[a-z0-9][a-z0-9.-]*', info['id']) and not info['id'].startswith(('com.palm', 'com.webos', 'com.lge')), 'Invalid webOS app ID'
+assert info['type'] == 'web' and info.get('disableBackHistoryAPI') is True, 'CleanFrame handles Back itself'
+assert info['version'] == version == json.loads((root / 'service/package.json').read_text())['version'], 'Manifest/package versions differ'
+assert re.fullmatch(r'\d+\.\d+\.\d+', info['version']), 'webOS versions are three numbers'
+assert service['id'] == info['id'] + '.service' and [s['name'] for s in service['services']] == [service['id']], 'Service ID must extend the app ID'
+assert json.loads((root / 'service/package.json').read_text())['name'] == service['id'], 'Service package name differs'
+assert (root / 'service/service.js').is_file(), 'Missing service'
+for field in ['main', 'icon', 'largeIcon']:
+    assert (app / info[field]).is_file(), 'Missing ' + field + ' file'
 assert all((app / name).is_file() for name in ['main.js', 'style.css'])
 for reference in ['assets/wallpapers/catalog.js', 'assets/adaptive-ink.js', 'assets/font-catalog.js']:
     assert (app / reference).is_file(), 'Missing runtime catalogue: ' + reference
@@ -30,7 +33,7 @@ for filename in ['index.html']:
             assert reference.startswith(('./', '../')), 'Module imports must be relative paths'
 for css in app.rglob('*.css'):
     source = re.sub(r'/\*.*?\*/', '', css.read_text(), flags=re.S)
-    assert not re.search(r'(?:^|[;{}])\s*inset\s*:', source, re.I), 'Use explicit edges for Chromium 85: ' + str(css.relative_to(app))
+    assert not re.search(r'(?:^|[;{}])\s*inset\s*:', source, re.I), 'Use explicit edges for older engines: ' + str(css.relative_to(app))
     assert not re.search(r'(?:^|[;{}])\s*(?:row-|column-)?gap\s*:', source, re.I), 'Use child margins for older flex engines: ' + str(css.relative_to(app))
     for reference in re.findall(r'url\([\"\']?([^\)\"\']+)', source):
         if ':' not in reference:
@@ -44,6 +47,6 @@ for wall in walls:
     for suffix in ['study-soft', 'field-blur', 'field-frost', 'field-clear']:
         assert (app / ('assets/materials/' + wall_id + '-' + suffix + '.jpg')).is_file(), 'Missing registered material: ' + wall_id + '/' + suffix
     assert (app / ('assets/wallpapers/' + wall_id + '-panel.jpg')).is_file(), 'Missing panel backdrop: ' + wall_id
-for icon in ['stremio', 'netflix', 'disneyplus', 'youtube', 'appletv', 'primevideo', 'abciview', 'sbs', 'applemusic', 'art', 'apps', 'settings']:
+for icon in ['netflix', 'youtube', 'primevideo', 'disneyplus', 'appletv', 'spotify', 'hbomax']:
     assert (app / ('assets/icons/' + icon + '.svg')).is_file(), 'Missing icon: ' + icon
-print('Widget identity, version and bundled resources are valid.')
+print('App identity, version and bundled resources are valid.')

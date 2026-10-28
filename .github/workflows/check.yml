@@ -1,4 +1,4 @@
-name: Check
+name: Check and build
 
 on:
   push:
@@ -8,9 +8,9 @@ permissions:
   contents: read
 
 jobs:
-  public-source:
+  lg-package:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CLEANFRAME_PUBLIC_FONTS: '1'
     steps:
@@ -26,8 +26,16 @@ jobs:
           python-version: '3.12'
       - run: npm ci
       - run: npm run check
-      - run: npm run check:tools
       - run: npm run check:public
       - run: npx playwright install --with-deps chromium
       - run: npm run check:browser
-      - run: npm run export:public
+      - run: npm run package
+      # The installable LG package, with the notices that travel with it.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: CleanFrame-LG-webOS
+          path: |
+            dist/*.ipk
+            LICENSE
+            THIRD_PARTY_NOTICES.md
+          if-no-files-found: error

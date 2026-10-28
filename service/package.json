@@ -1,0 +1,7 @@
+{
+  "name": "io.cleanframe.lg.service",
+  "version": "0.6.1",
+  "description": "Reads the TV's app list for CleanFrame",
+  "main": "service.js",
+  "private": true
+}

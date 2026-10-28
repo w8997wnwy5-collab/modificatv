@@ -2,85 +2,56 @@
 
 ## Browser preview
 
-Start with Node.js 22.13+ (22 LTS), or 24+, and Python 3.10+, then `npm ci`. These are the supported development baselines; lower versions have not been checked. Install Chromium once with `npx playwright install chromium` for the optional browser tools. Linux hosts may also need Playwright's documented system dependencies (`npx playwright install --with-deps chromium`).
+Start with Node.js 22.13+ (22 LTS), or 24+, and Python 3.10+, then `npm ci`. Install Chromium once with `npx playwright install chromium` for the browser checks. Linux hosts may also need Playwright's system dependencies (`npx playwright install --with-deps chromium`).
 
-`npm run dev` starts http://localhost:4795/home/, bound to this computer only. `/home/` serves `app/`, the same source used in the signed widget. Arrow keys, Enter and Escape mirror remote navigation. Device controls report that they require the TV; no success is simulated.
+`npm run dev:public` starts http://localhost:4795/home/, bound to this computer only, with the bundled public fonts. `/home/` serves `app/`, the same source that goes into the LG package. Arrow keys, Enter and Escape mirror the remote. TV controls report that they require the TV; no success is simulated. `npm run dev` also offers the optional Pangram fonts when their files are in `.local/research/font-candidates/`; they are never packaged.
 
-`npm run dev:public` serves the same interface using only the bundled public fonts, even when paid Pangram files exist locally. For a contributor's fresh clone, use the README and `docs/for-agents.md`; the signing/device setup below describes the reference machine and needs adaptation for another owner.
+All UI assets, public fonts and the fifteen wallpapers are bundled. Glass materials and blurred panel backgrounds are rendered ahead of time; see `app/assets/wallpapers/README.md` and [assets](assets.md).
 
-All UI assets, public fonts and the fifteen wallpapers are bundled. This private build also includes the three locally installed Pangram families through an ignored build overlay; their binaries are not in the public source tree. Glass materials and blurred panel backgrounds are rendered ahead of time; see app/assets/wallpapers/README.md.
+## Runtime map
 
-## Runtime map and compatibility
-
+- `app/appinfo.json` is the webOS manifest: app ID `io.cleanframe.lg`, a 1920 × 1080 web app that handles Back itself (`disableBackHistoryAPI`).
 - `app/index.html` loads the device adapter, gallery/font/palette catalogues, `assets/icons/metrics.js` and `main.js`, with `style.css`.
-- `main.js` owns the List and Dock layouts, panel stack, focus, preferences and wallpaper timers. `device.js` owns installed-app discovery and Tizen calls. Keep device details in that adapter.
-- The logical stage is 1920 x 1080, scaled uniformly to the viewport. Check at 1920 x 1080 and 1280 x 720. Glass geometry and cached materials must stay aligned.
-- Preferences use localStorage key `cleanframe.home.v1`, with a fallback read from `cleanframe.shore.v1`. Legacy fields are `dock`, `wallpaper`, `mode`, `lastApp` and `theme`. The 0.6 migration preserves app order, wallpaper, rotation and selection. Legacy `list` becomes Dark / List / Type; `shore` and `grid` become Photo / Dock / Glass. Appearance axes are stored separately. A saved dynamic app keeps its real app ID and name; discovery refreshes the installed catalogue. Keep migration checks when changing this format.
-- `window.ShoreQA.state()` and `.where()` expose state and focus for browser tests. `minuteMs` can shorten rotation intervals in an isolated browser test.
+- `main.js` owns the List and Dock layouts, panel stack, focus, preferences, clock and wallpaper timers. Remote keys arrive as key codes 37–40, 13 and 461 (Back).
+- `device.js` owns every TV call, on the Luna bus through `PalmServiceBridge`: launching apps, Live TV, LG Home, TV settings, installed-app discovery and the screensaver hold. Keep device details in this adapter.
+- `service/` is a small JS service in the same package (`io.cleanframe.lg.service`). webOS 6 and later refuse `listLaunchPoints` to Developer Mode apps, and the TV's remote-control API on `127.0.0.1:3000` refuses the page's own origin, so the service asks that API for the app list with only the `READ_INSTALLED_APPS` permission. The TV asks its owner once. It runs on the TV's older Node.js: keep it ES5.
+- Discovery order: `listLaunchPoints`; then the service; then a short list of known LG app IDs checked one by one with `getAppLoadStatus`. Free My TV reports these behaviours on TVs from webOS 3 to webOS 11, and tested the service route on webOS 22 with 2026 firmware.
+- The logical stage is 1920 × 1080, scaled uniformly to the viewport. Check at 1920 × 1080 and 1280 × 720.
+- Preferences use localStorage key `cleanframe.home.v1`, with a fallback read from `cleanframe.shore.v1`, as upstream. `cleanframe.lg.remoteKey` and `cleanframe.lg.remoteRefused` keep the TV's answer to the app-list prompt. A saved non-primary app keeps its real app ID and name.
+- `window.ShoreQA.state()` and `.where()` expose state and focus for browser tests.
 
-The tested target is the Tizen 9.0 TV in [TV status](tv-status.md); [contributor reports](compatibility.md) cover other TVs. The manifest's `required_version="6.5"` is a package declaration, not proof of broad Tizen 6.5 support. The exact reference TV Chromium/WebKit engine version has not been recorded. `npm run lint` uses ESLint's ES5 grammar for all runtime JavaScript and checks undefined names, unused code and dynamic evaluation. This does not check DOM/CSS or TV API availability; verify new APIs on the target before claiming support. The CSS guard rejects `inset` and flex `gap` declarations; use explicit top/right/bottom/left edges and child margins. The spacing fallback addresses the older engine reported in PR #11 without changing the package minimum. Geometry checks cover both Home layouts, all three control modes and both preview sizes; they do not establish TV compositor support. Tooling stays in development dependencies and outside the widget. See [ESLint's language options](https://eslint.org/docs/latest/use/configure/language-options).
+The target is the LG 50UQ75006LF on webOS 22, whose web engine is Chromium 87. `npm run lint` uses ESLint's ES5 grammar for the app and service. It does not check DOM/CSS or TV API availability; verify new APIs on the TV before relying on them. The upstream CSS guard (no `inset`, no flex `gap`) stays, for older engines.
 
-Keep material rendering in the development tools. See [asset generation](assets.md) and [testing](testing.md).
+## Package
 
-## Local TV tools and signing
+`npm run package` runs LG's `ares-package` (from `@webos-tools/cli`, a development dependency) on `app/` and `service/` and writes `dist/io.cleanframe.lg_<version>_all.ipk`. Sources go in unminified. The script first rejects private files and credential patterns, checks that the app, package and service versions agree, then checks the package contents. Developer Mode installs the package unsigned; no LG certificate is involved.
 
-This Mac's setup lives under `.local/` and is excluded from Git:
+`ares-package` warns that `requiredACG` is missing. LG has said that field becomes mandatory for store apps on later webOS versions; webOS 22 does not use it, and an empty list would wrongly declare that CleanFrame calls no Luna APIs. Revisit it if the TV's firmware starts enforcing access groups for Developer Mode apps.
 
-- `tizen-sdk/`: official Tizen SDK command-line tools, embedded Java and SDB.
-- `certificates/private/`: Samsung-issued author/distributor certificates, private keys, protected PKCS12 files and their generated password.
-- `certificates/ca/`: CA certificates from Samsung's Certificate Extension.
-- `device.json`: TV host address.
+The GitHub Actions workflow builds the same package and uploads it as the `CleanFrame-LG-webOS` artifact, with `LICENSE` and `THIRD_PARTY_NOTICES.md`.
 
-`npm run package` builds the widget from `app/` and signs it with an existing official SDK profile. It does not rewrite `profiles.xml`, certificate paths or SDK configuration. It writes `dist/CleanFrame-unsigned.wgt` and promotes a successful build to `dist/CleanFrame.wgt`. Each attempt uses a fresh ignored `dist/signed-*` folder, retained for inspection; a failed attempt keeps the previous successful widget. Check the packaging exit status before installing, since `tv:install` does not establish that this is the latest source build. `scripts/font_assets.py` adds only the six approved local Pangram files when complete pairs are available, plus their generated CSS/catalogue. It never copies private fonts into `app/`. Public checkouts use Manrope, Geist and Newsreader.
+## Install on a TV
 
-For another owner, copy `signing.example.json` to `.local/signing.json` and replace its placeholders with the installed SDK path, certificate profile name and the package/application IDs generated by the official project wizard. An existing local config must explicitly select `profile`; the maintainer default applies only when no config exists. Paths may be absolute or relative to the repo; `~` is supported. The SDK path resolves symlinks before invoking its tools. If the SDK launcher fails on spaces in its real installation path, select a space-free SDK installation; a repository symlink can still contain spaces. The password filename remains unresolved so the no-follow check can reject a symlink. The example contains no real credentials. Both identity fields must be set together. Packaging changes only these two attribute values in the generated manifest; tracked source and the maintainer's identity remain unchanged. The installed app reads its own identity from Tizen when filtering All apps. Native Home helpers retain their separate reference-machine guards and must be reviewed independently.
+Each of these is a device action: announce it to the TV's owner first.
 
-Select the profile's existing `profiles.xml` through the official SDK configuration if needed; see [Samsung's CLI configuration and packaging documentation](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/command-line-interface.html). Certificate Manager can store certificates in its own folders. CleanFrame uses those existing paths without moving or rewriting them.
+1. On the TV, install **Developer Mode** from the LG Content Store, sign in with an LG developer account, turn on **Dev Mode Status** (the TV restarts) and then **Key Server**. Note the IP address and passphrase it shows.
+2. Add the TV, with the name `tv`:
 
-`npm run export:public` is a separate offline, unsigned export. It always disables the proprietary overlay, includes the project/third-party notices and writes `dist/CleanFrame-public-unsigned.wgt`. It reads no signing credentials and contacts no TV. Use it for public build preparation; `npm run package` on this machine remains a personal build that can contain paid fonts. Asset release checks are listed in `docs/public-release.md`.
+   ```sh
+   npx ares-setup-device -a tv -i "host=TV_IP_ADDRESS" -i "port=9922" -i "username=prisoner"
+   npx ares-novacom --getkey -d tv
+   ```
 
-Leave `password_file` as `null` or omit it to use the SDK's saved password access. No extra plaintext copy is required. An unexpected password prompt fails immediately; configure password access in the official tools or explicitly select a password file. The optional file must be owned by the current user, have mode `600` or `400`, and reside in `.local/` or outside the repo. A symlink at the final filename and files inside `app/` or `.git/` are rejected; parent symlinks are resolved before the location check. This fallback supplies one password to at most two certificate prompts and declines password-saving prompts; use SDK-managed access for certificates with different passwords. SDK signing output is suppressed so credentials cannot enter diagnostics. Fixed validation messages identify password-prompt, timeout, failed-command, missing-signature and identity errors without copying SDK output.
+   The second command asks for the passphrase and stores the TV's key in `~/.ssh`.
+3. `npm run package`, then `npm run tv:install` and `npm run tv:launch`. `npm run tv:remove` uninstalls. Set `CLEANFRAME_TV` to use another device name.
 
-With no `.local/signing.json`, the original maintainer defaults remain: `.local/tizen-sdk`, profile `FrameHome`, the source manifest identity, and the existing private password file if present. Its permissions must satisfy the same checks. The SDK must already be configured; automatic SDK/profile repair has been removed. Actual signing with an owner's certificates requires a separate local check; offline tests use a fake SDK.
+Keep the app ID unchanged: an install with the same ID updates the app in place and keeps its preferences. A Developer Mode session lasts a limited time (the app shows what remains); **EXTEND** in the Developer Mode app renews it. When it expires, the TV removes developer apps, and installing again brings CleanFrame back without its preferences.
 
-The initial custom XML-signature implementation was rejected by the TV. Use the official SDK packager for future builds; the installed test was signed with Tizen CLI 2.5.25.
-
-## Another checkout or Mac
-
-Install the official [Samsung TV SDK](https://developer.samsung.com/smarttv/develop/getting-started/setting-up-sdk/installing-tv-sdk.html) and select its path in `.local/signing.json`. The signing runner uses POSIX terminal/process APIs and is supported by these tools on macOS/Linux; Windows needs its own adapted runner. To retain in-place updates to your own existing app, securely transfer its author certificate and password. Keep those credentials local.
-
-For new certificates, use Samsung's [certificate setup](https://developer.samsung.com/smarttv/develop/getting-started/setting-up-sdk/creating-certificates.html). The distributor certificate must include the target TV's DUID. A generic emulator certificate does not establish compatibility with this consumer TV.
-
-Create `.local/device.json` with:
-
-```json
-{"host": "YOUR_TV_IP_ADDRESS"}
-```
-
-For developer access, connect the TV and Mac to the same network, enable Developer Mode in Apps → App Settings → 12345 and enter the Mac's local address. Fully restart the TV if the developer port remains closed.
-
-## Install and launch
-
-`npm run tv:install` uploads the signed widget with a unique build filename and calls Samsung's `vd_appinstall` command. It checks for `install completed` and confirms the app appears in the installed-app list. `sdb install` on this TV only uploaded the widget and did not install it.
-
-`npm run tv:launch` opens the selected app. It does not change startup defaults. The TV tools use the SDK path and identity selected in `.local/signing.json`, falling back to the reference SDK and source manifest. Before any install connection, the installer checks the signed widget's identity and private-file policy. Changing an installed app's identity creates a different application; preserve existing identity and author certificates for updates. These tools remain reference installation commands, not an unattended installer for every TV.
+[webOS Dev Manager](https://github.com/webosbrew/dev-manager-desktop) does the same without a terminal: add the TV with its IP address and passphrase, then install the `.ipk`.
 
 ## Sources
 
-- [Samsung developer connection steps](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/tv-device.html)
-- [Samsung app-launch sample](https://github.com/SamsungDForum/LaunchApp)
-- [Samsung remote input guide](https://developer.samsung.com/smarttv/develop/guides/user-interaction/remote-control.html)
-
-## Native Home and recovery
-
-Native Home/startup was configured separately from the app installer. Physical Home from Netflix is confirmed. The one-shot helper runs as the SDK user. See scripts/native-home/README.md and docs/tv-status.md for the tested firmware and pending visual checks.
-
-Query with `python3 scripts/native-home/run.py query`. Restore the saved pre-integration Home/startup values with `python3 scripts/native-home/run.py restore`. The private baseline is `.local/native-home/original.json`; preserve it and do not replace it with the applied state. The legacy `.local/native-home/run.py` command is also retained. Restore before uninstalling CleanFrame or changing its stable app identity.
-
-To rebuild the one-shot helper with this Mac's private verified SDK:
-
-```sh
-DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_HOME="$PWD/.local/native-home/cli" .local/native-home/dotnet-sdk/dotnet build scripts/native-home/Control.csproj -c Release --nologo -p:BaseIntermediateOutputPath="$PWD/.local/native-home/obj/" -o .local/native-home/out
-```
-
-The helper's output is not packaged inside the web app. Keep the original values, compiler, runtime output and all device diagnostics ignored.
+- [LG webOS TV CLI guide](https://webostv.developer.lge.com/develop/tools/webos-tv-cli-dev-guide) and [Developer Mode app](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app)
+- [LG Application Manager API](https://webostv.developer.lge.com/develop/references/application-manager) and [Back button guide](https://webostv.developer.lge.com/develop/guides/back-button)
+- [LG web engine versions](https://webostv.developer.lge.com/develop/specifications/web-api-and-web-engine)
+- [Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT): field reports for Developer Mode Luna access and the remote-control API route

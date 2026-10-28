@@ -1,30 +1,42 @@
-// Production UI checks. Mock only the public Tizen boundary; never contact a TV.
+// Production UI checks. Mock only the public LG webOS (Luna) boundary; never contact a TV.
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { openPreview, root } from './browser.mjs';
 
 const KEY = 'cleanframe.home.v1';
-const PRIMARY = ['stremio', 'netflix', 'disneyplus', 'youtube', 'appletv', 'primevideo', 'abciview', 'sbs', 'applemusic'];
-const IDS = ['IkWsFHtOY9.Stremio', 'org.tizen.netflix-app', 'MCmYXNxgcu.DisneyPlus', '9Ur5IzDKqV.TizenYouTube', 'com.samsung.tv.aria-video', 'org.tizen.primevideo', 'mWK87Xghap.ABCiview', 'OyE7OuxlUi.SBSOnDemand', 'org.tizen.apple.apple-music'];
-const NAMES = ['Stremio', 'Netflix', 'Disney+', 'YouTube', 'Apple TV', 'Prime Video', 'ABC iview', 'SBS On Demand', 'Apple Music'];
-const EXTRA = 'AbCdEf1234.FamilyApp', SPOTIFY = 'rJeHak5zRg.Spotify';
+const SELF = 'io.cleanframe.lg';
+const PRIMARY = ['netflix', 'youtube', 'primevideo', 'disneyplus', 'appletv'];
+const IDS = ['netflix', 'youtube.leanback.v4', 'amazon', 'com.disney.disneyplus-prod', 'com.apple.appletv'];
+const NAMES = ['Netflix', 'YouTube', 'Prime Video', 'Disney+', 'Apple TV'];
+const EXTRA = 'com.example.familyapp', SPOTIFY = 'spotify-beehive';
+// Known LG apps that can fill Home to its nine-app limit.
+const FILLERS = [SPOTIFY, 'com.wbd.stream', 'ui30', 'cdp-30'];
 const UNSAFE_NAME = 'Family <img src=x onerror="window.__catalogXss=1"> & TV';
-const CATALOG = IDS.map((id, i) => ({ id, name: NAMES[i], show: true, iconPath: '' })).concat([
-  { id: EXTRA, name: UNSAFE_NAME, show: true, iconPath: '' },
-  { id: SPOTIFY, name: 'Spotify', show: true, iconPath: '' },
-  { id: '5b8c3eb16b.BeamCTVDev', name: 'HBO Max', show: true, iconPath: '' },
-  { id: 'nClrkHome1.FrameHome', name: 'CleanFrame', show: true },
-  { id: 'AbCdEf1234.worker', name: 'Background worker', show: true },
-  { id: 'com.samsung.tv.cobalt-yt', name: 'YouTube', show: true }
+// Launch points as the TV lists them: CleanFrame, LG's Home, untitled entries and repeats are not apps.
+const CATALOG = IDS.map((id, i) => ({ id, title: NAMES[i], icon: '', largeIcon: '' })).concat([
+  { id: EXTRA, title: UNSAFE_NAME, icon: '', largeIcon: '' },
+  { id: SPOTIFY, title: 'Spotify', icon: '' },
+  { id: 'com.wbd.stream', title: 'HBO Max', icon: '' },
+  { id: 'ui30', title: 'Rakuten TV', icon: '' },
+  { id: 'cdp-30', title: 'Plex', icon: '' },
+  { id: 'com.webos.app.hdmi1', title: 'HDMI 1', icon: '' },
+  { id: 'com.example.news', title: 'News Now', icon: '' },
+  { id: SELF, title: 'CleanFrame', icon: '' },
+  { id: 'com.webos.app.home', title: 'Home', icon: '' },
+  { id: 'com.example.untitled', icon: '' },
+  { id: 'youtube.leanback.v4', title: 'YouTube', icon: '' }
 ]);
+const LISTED = 12;
 const walls = JSON.parse(readFileSync(root + 'app/assets/wallpapers/SOURCES.json', 'utf8'));
 const out = root + '.local/qa/';
 mkdirSync(out, { recursive: true });
-const sourceFiles = ['app/main.js', 'app/device.js', 'app/index.html', 'app/style.css', 'app/config.xml', 'app/assets/wallpapers/SOURCES.json', 'app/assets/wallpapers/catalog.js', 'app/assets/adaptive-ink.js', 'app/assets/icons/metrics.js'];
+const sourceFiles = ['app/main.js', 'app/device.js', 'app/index.html', 'app/style.css', 'app/appinfo.json', 'service/service.js', 'app/assets/wallpapers/SOURCES.json', 'app/assets/wallpapers/catalog.js', 'app/assets/adaptive-ink.js', 'app/assets/icons/metrics.js'];
 const hashes = () => Object.fromEntries(sourceFiles.map(f => [f, createHash('sha256').update(readFileSync(root + f)).digest('hex')]));
-const report = { scope: 'Production UI in Chromium; mock public Tizen API only; no TV contacted.', sourceBefore: hashes(), checks: [], failures: [], pageErrors: [], expectedNetworkFailures: [] };
+const report = { scope: 'Production UI in Chromium; mock public webOS Luna API only; no TV contacted.', sourceBefore: hashes(), checks: [], failures: [], pageErrors: [], expectedNetworkFailures: [] };
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const baseline = (patch = {}) => ({ dock: PRIMARY.slice(), wallpaper: walls[0].id, mode: 'fixed', lastApp: 'netflix', theme: 'shore', ...patch });
+// Home at its nine-app limit, saved with the records CleanFrame keeps for non-primary apps.
+const nine = () => baseline({ dock: PRIMARY.concat(FILLERS), appRecords: FILLERS.map(id => ({ id, appId: id, name: CATALOG.find(a => a.id === id).title, brand: { [SPOTIFY]: 'spotify', 'com.wbd.stream': 'hbomax' }[id] || '' })) });
 let preview, current, section = '';
 
 function check(name, pass, detail) {
@@ -42,7 +54,7 @@ async function run(name, fn) {
 async function closePage() { if (current) { current.__closing = true; await current.close(); current = null; } }
 
 // Production still calls its unmodified device.js adapter.
-function installHarness({ seed, legacy, mock, catalog, minuteMs, catalogFailure, noFontAPI, storageFailure, currentAppId, initiallyHidden, pauseHiddenFrames, rejectDecode }) {
+function installHarness({ seed, legacy, mock, catalog, minuteMs, catalogFailure, noFontAPI, storageFailure, currentAppId, initiallyHidden, pauseHiddenFrames, rejectDecode, developerMode }) {
   if (!sessionStorage.getItem('__cleanframe_seeded')) {
     if (seed !== undefined) localStorage.setItem('cleanframe.home.v1', typeof seed === 'string' ? seed : JSON.stringify(seed));
     if (legacy !== undefined) localStorage.setItem('cleanframe.shore.v1', typeof legacy === 'string' ? legacy : JSON.stringify(legacy));
@@ -76,27 +88,31 @@ function installHarness({ seed, legacy, mock, catalog, minuteMs, catalogFailure,
   if (rejectDecode) HTMLImageElement.prototype.decode = function () { return Promise.reject(new DOMException('Synthetic decode rejection')); };
   if (noFontAPI) Object.defineProperty(document, 'fonts', { configurable: true, value: undefined });
   if (!mock) return;
-  window.__tv = { catalog, catalogFailure: !!catalogFailure, launchFailure: false, holdCatalog: false, pending: [], calls: [], catalogCalls: 0 };
-  window.tizen = {
-    ApplicationControlData: function (key, value) { this.key = key; this.value = value; },
-    ApplicationControl: function (operation, uri, mime, category, data) { Object.assign(this, { operation, uri, mime, category, data }); },
-    application: {
-      getCurrentApplication() { return { appInfo: { id: currentAppId || 'nClrkHome1.FrameHome' } }; },
-      getAppsInfo(ok, fail) {
-        const tv = window.__tv;
-        tv.catalogCalls++;
-        const finish = () => tv.catalogFailure ? fail({ name: 'UnknownError', message: 'Catalogue unavailable for QA' }) : ok(tv.catalog.map(a => ({ ...a })));
-        if (tv.holdCatalog) tv.pending.push({ ok, fail }); else setTimeout(finish, 0);
-      },
-      launch(id, ok, fail) {
-        const tv = window.__tv; tv.calls.push({ method: 'launch', id });
-        setTimeout(() => tv.launchFailure ? fail({ name: 'NotFoundError', message: 'App unavailable for QA' }) : ok(), 0);
-      },
-      launchAppControl(control, id, ok, fail) {
-        const tv = window.__tv; tv.calls.push({ method: 'launchAppControl', id, control });
-        setTimeout(() => tv.launchFailure ? fail({ name: 'UnknownError', message: 'Screen unavailable for QA' }) : ok(), 0);
-      }
-    }
+  // developerMode: listLaunchPoints is refused, as on webOS 6 and later; 'allow' or 'refuse' answers the TV prompt.
+  window.__tv = { catalog, catalogFailure: !!catalogFailure, launchFailure: false, holdCatalog: false, pending: [], calls: [], catalogCalls: 0, luna: [], developerMode: developerMode || null };
+  const DENIED = { returnValue: false, errorText: 'Denied method call for category "/"' };
+  window.PalmSystem = { identifier: (currentAppId || 'io.cleanframe.lg') + ' 1001', platformBack() { window.__tv.calls.push({ method: 'platformBack' }); } };
+  window.PalmServiceBridge = function () {};
+  window.PalmServiceBridge.prototype.call = function (uri, params) {
+    const tv = window.__tv, method = uri.replace('luna://', ''), payload = JSON.parse(params);
+    const reply = value => setTimeout(() => this.onservicecallback(JSON.stringify(value)), 0);
+    tv.luna.push({ method, payload });
+    if (method === 'com.webos.applicationManager/launch') {
+      tv.calls.push({ method: 'launch', id: payload.id });
+      reply(tv.launchFailure ? { returnValue: false, errorText: 'App unavailable for QA' } : { returnValue: true });
+    } else if (method === 'com.webos.applicationManager/listLaunchPoints') {
+      tv.catalogCalls++;
+      const ok = list => reply({ returnValue: true, launchPoints: list.map(a => ({ ...a })) }), fail = () => reply(DENIED);
+      if (tv.holdCatalog) tv.pending.push({ ok, fail });
+      else if (tv.catalogFailure || tv.developerMode) fail(); else ok(tv.catalog);
+    } else if (method === 'com.webos.applicationManager/getAppLoadStatus') {
+      reply(tv.catalogFailure ? DENIED : { returnValue: true, exist: tv.catalog.some(a => a.id === payload.appId) });
+    } else if (/\.service\/launchPoints$/.test(method)) {
+      if (tv.developerMode === 'allow') reply({ returnValue: true, clientKey: 'qa-key', launchPoints: tv.catalog.map(a => ({ ...a })) });
+      else if (tv.developerMode === 'refuse' && !payload.clientKey) reply({ returnValue: false, refused: true, errorText: 'Denied by the owner' });
+      else reply({ returnValue: false, errorText: 'The remote-control API is unavailable.' });
+    } else if (/registerScreenSaverRequest$/.test(method)) reply({ returnValue: true, subscribed: true });
+    else reply({ returnValue: false, errorText: 'Unknown method' });
   };
 }
 async function page(options = {}, setup) {
@@ -249,7 +265,7 @@ try {
     check('Failed open-mode write retains prior photo', (await state()).wallpaper === walls[0].id && (await stored()).wallpaper === walls[0].id);
   });
   await run('Font recovery invalidates fallback measurements', async () => {
-    const seed = baseline({ dock: ['sbs', 'netflix'], lastApp: 'sbs', look: { bg: 'photo', layout: 'list', apps: 'both', font: 'manrope', controls: 'both', focus: 'glass', material: 'soft' } });
+    const seed = baseline({ dock: ['primevideo', 'netflix'], lastApp: 'primevideo', look: { bg: 'photo', layout: 'list', apps: 'both', font: 'manrope', controls: 'both', focus: 'glass', material: 'soft' } });
     const geometry = () => current.evaluate(() => ({
       plate: document.querySelector('#phScene > .ph-plate.is-current').style.width,
       names: [...document.querySelectorAll('.ph-name')].map(e => ({ text: e.textContent, size: e.style.fontSize, top: e.style.top }))
@@ -365,7 +381,7 @@ try {
     }
   });
   await run('Panel spacing geometry', async () => {
-    await page();
+    await page({ seed: nine() });
     for (const width of [1920, 1280]) {
       await current.setViewportSize({ width, height: width * 9 / 16 });
       await look({ layout: 'dock', focus: 'glass' }); await editor();
@@ -399,56 +415,74 @@ try {
   await run('Real catalogue and native launch boundary', async () => {
     await page(); await library();
     const names = await current.locator('[data-action^="apps.open."] .label').allTextContents();
-    check('Consumer catalogue excludes services, self and duplicate YouTube', names.length === 12 && names.filter(n => n === 'YouTube').length === 1 && !names.includes('CleanFrame') && !names.includes('Background worker'), names);
+    check('Catalogue excludes CleanFrame, LG Home, untitled entries and the repeated YouTube', names.length === LISTED && names.filter(n => n === 'YouTube').length === 1 && !names.includes('CleanFrame') && !names.includes('Home'), names);
     check('Installed names stay text, including HTML punctuation', names.includes(UNSAFE_NAME) && !(await current.evaluate(() => window.__catalogXss)));
-    check('Exploration fixtures do not appear', !names.includes('Plex') && !names.includes('Jellyfin'));
     await act('apps.open.' + SPOTIFY); await current.waitForFunction(() => __tv.calls.length > 0);
     check('Extra-brand app launches native ID', (await current.evaluate(() => __tv.calls.at(-1))).id === SPOTIFY);
     await current.evaluate(() => window.dispatchEvent(new Event('focus')));
     await scene('home'); await act('home.app.netflix'); await current.waitForFunction(() => __tv.calls.length === 2);
-    check('Primary app keeps verified target', (await current.evaluate(() => __tv.calls.at(-1))).id === IDS[1]);
+    check('Primary app keeps verified target', (await current.evaluate(() => __tv.calls.at(-1))).id === IDS[0]);
     await current.evaluate(() => window.dispatchEvent(new Event('focus')));
-    await act('util.art'); await current.waitForFunction(() => __tv.calls.length === 3);
-    const art = await current.evaluate(() => __tv.calls.at(-1));
-    check('Art Mode uses app-control with fullscreen request', art.method === 'launchAppControl' && art.id === 'org.tizen.art-app' && art.control.data.some(d => d.key === 'mode' && d.value[0] === 'fullscreen'), art);
-    await current.evaluate(() => window.dispatchEvent(new Event('focus'))); await group('samsung'); await act('samsung.home');
+    await act('util.tv'); await current.waitForFunction(() => __tv.calls.length === 3);
+    check('Live TV opens the TV input', (await current.evaluate(() => __tv.calls.at(-1))).id === 'com.webos.app.livetv');
+    await current.evaluate(() => window.dispatchEvent(new Event('focus'))); await group('lg'); await act('lg.home');
     await current.waitForFunction(() => __tv.calls.length === 4);
-    check('Samsung escape keeps CSFS target', (await current.evaluate(() => __tv.calls.at(-1))).id === 'com.samsung.tv.csfs');
-    await current.evaluate(() => window.dispatchEvent(new Event('focus'))); await group('samsung'); await act('samsung.settings');
+    check('LG Home opens LG\u2019s Home app', (await current.evaluate(() => __tv.calls.at(-1))).id === 'com.webos.app.home');
+    await current.evaluate(() => window.dispatchEvent(new Event('focus'))); await group('lg'); await act('lg.settings');
     await current.waitForFunction(() => __tv.calls.length === 5);
-    check('TV settings keeps installed target', (await current.evaluate(() => __tv.calls.at(-1))).id === 'com.samsung.tv.coba.setting');
+    check('TV settings opens LG settings', (await current.evaluate(() => __tv.calls.at(-1))).id === 'com.palm.app.settings');
+    await current.evaluate(() => window.dispatchEvent(new Event('focus'))); await scene('home'); await nav('back'); await act('message.lghome');
+    await current.waitForFunction(() => __tv.calls.length === 6);
+    check('Back, then LG Home, leaves for LG\u2019s Home', (await current.evaluate(() => __tv.calls.at(-1))).id === 'com.webos.app.home' && (await call('where')).view === 'home');
     await current.evaluate(() => { window.dispatchEvent(new Event('focus')); __tv.launchFailure = true; });
     await scene('home'); await act('home.app.netflix'); await current.waitForFunction(() => ShoreQA.where().view === 'message');
     check('Launch failure is shown', /could not|unavailable|try again/i.test(await current.locator('#stage').innerText()));
   });
   await run('Independent app identity self-filter', async () => {
-    const appId = 'AbCdEf1234.MyHome';
-    await page({ currentAppId: appId, catalog: CATALOG.filter(a => a.id !== 'nClrkHome1.FrameHome').concat({ id: appId, name: 'Family Home', show: true }) });
+    const appId = 'com.example.myhome';
+    await page({ currentAppId: appId, catalog: CATALOG.filter(a => a.id !== SELF).concat({ id: appId, title: 'Family Home', icon: '' }) });
     await library();
     const independent = await state();
     const names = await current.locator('[data-action^="apps.open."] .label').allTextContents();
     check('Independent build excludes its actual application ID', independent.catalog.ids.includes(EXTRA) && !independent.catalog.ids.includes(appId) && !names.includes('Family Home'));
     await closePage();
     await page();
-    await current.evaluate(() => { delete tizen.application.getCurrentApplication; });
+    await current.evaluate(() => { delete window.PalmSystem; });
     await library();
     const fallback = await state();
-    check('Unavailable current-app API keeps reference identity fallback', fallback.catalog.ids.includes(EXTRA) && !fallback.catalog.ids.includes('nClrkHome1.FrameHome'));
+    check('Unavailable PalmSystem keeps the packaged identity fallback', fallback.catalog.ids.includes(EXTRA) && !fallback.catalog.ids.includes(SELF));
   });
   await run('Catalogue failure and retry', async () => {
     await page({ catalogFailure: true }); await library();
     check('Catalogue failure leaves Home intact', same((await state()).dock, PRIMARY));
     await current.evaluate(() => { __tv.catalogFailure = false; }); await act('apps.retry');
     await current.waitForSelector('[data-action="apps.open.' + EXTRA + '"]');
-    check('Retry displays real installed names', (await current.locator('[data-action^="apps.open."]').count()) === 12);
+    check('Retry displays real installed names', (await current.locator('[data-action^="apps.open."]').count()) === LISTED);
+  });
+  await run('Developer Mode discovery on webOS 6 and later', async () => {
+    await page({ developerMode: 'allow' }); await library();
+    const allowed = (await state()).catalog;
+    check('An allowed TV prompt lists every app', !allowed.error && allowed.ids.length === LISTED && allowed.ids.includes(EXTRA), allowed);
+    check('The client key is kept for later lists', await current.evaluate(() => localStorage.getItem('cleanframe.lg.remoteKey') === 'qa-key'));
+    await closePage();
+    await page({ developerMode: 'refuse' }); await library();
+    const refused = (await state()).catalog;
+    check('A refused prompt falls back to known LG apps', !refused.error && refused.ids.includes('netflix') && refused.ids.includes(SPOTIFY) && !refused.ids.includes(EXTRA), refused);
+    check('A refusal is remembered', await current.evaluate(() => localStorage.getItem('cleanframe.lg.remoteRefused') === '1'));
+    await current.evaluate(() => { __tv.developerMode = 'allow'; });
+    await group('lg'); await act('lg.apps');
+    await current.waitForFunction(() => ShoreQA.state().view === 'apps' && !ShoreQA.state().catalog.loading);
+    check('Settings → LG → Installed apps asks the TV again', (await state()).catalog.ids.includes(EXTRA) && (await call('where')).focusCount === 1, (await state()).catalog);
+    await nav('back');
+    check('Back from that list returns to the LG group', (await state()).settingsGroup === 'lg' && (await state()).focusAction === 'lg.apps', await call('where'));
   });
   await run('Native icon and failed-image fallback', async () => {
-    await page({ catalog: CATALOG.map(a => a.id === EXTRA ? { ...a, iconPath: '/home/assets/icons/netflix.svg' } : a) });
+    await page({ catalog: CATALOG.map(a => a.id === EXTRA ? { ...a, largeIcon: '/home/assets/icons/netflix.svg' } : a) });
     await library();
     await current.waitForFunction(id => { const row = document.querySelector('[data-action="apps.open.' + id + '"]'); const img = row && row.querySelector('img'); return img && img.complete && img.naturalWidth > 0; }, EXTRA);
     check('Unbranded installed app uses its native icon', await current.evaluate(id => { const img = document.querySelector('[data-action="apps.open.' + id + '"] img'); return img && getComputedStyle(img).display !== 'none' && img.parentNode.classList.contains('has-native-icon'); }, EXTRA));
     current.__expectedFailures.push('/missing-native-icon.png');
-    await current.evaluate(id => { __tv.catalog.find(a => a.id === id).iconPath = '/home/assets/icons/missing-native-icon.png'; }, EXTRA);
+    await current.evaluate(id => { __tv.catalog.find(a => a.id === id).largeIcon = '/home/assets/icons/missing-native-icon.png'; }, EXTRA);
     await library();
     await current.waitForFunction(id => { const img = document.querySelector('[data-action="apps.open.' + id + '"] img'); return img && img.src.includes('/missing-native-icon.png') && img.complete; }, EXTRA);
     const fallback = await current.evaluate(id => {
@@ -471,17 +505,18 @@ try {
     await page(); await editor();
     const start = (await state()).dock;
     await remove('netflix');
-    check('Remove persists membership and keeps installation', !(await stored()).dock.includes('netflix') && (await current.evaluate(() => __tv.catalog.some(a => a.id === 'org.tizen.netflix-app'))));
+    check('Remove persists membership and keeps installation', !(await stored()).dock.includes('netflix') && (await current.evaluate(() => __tv.catalog.some(a => a.id === 'netflix'))));
     check('Focus follows removal into addable apps', (await state()).focusAction === 'editor.add.netflix', (await state()).focusAction);
     await nav('ok'); check('Second OK restores same position', same((await stored()).dock, start));
     await remove('netflix'); await act('editor.undo'); check('Undo persists previous membership', same((await stored()).dock, start));
     await act('editor.move.netflix'); await nav('down'); check('Unfinished move does not write', same((await stored()).dock, start));
     await nav('back'); check('Back cancels unfinished move', same((await state()).dock, start));
     await act('editor.move.netflix'); await nav('down', 'ok');
-    const moved = start.slice(); [moved[1], moved[2]] = [moved[2], moved[1]];
+    const moved = start.slice(), at = start.indexOf('netflix'); [moved[at], moved[at + 1]] = [moved[at + 1], moved[at]];
     check('Placed move persists immediately', same((await stored()).dock, moved));
+    for (const id of FILLERS) await act('editor.add.' + id);
     await act('editor.add.' + EXTRA); check('Nine-app cap prevents addition', (await state()).dock.length === 9 && !(await state()).dock.includes(EXTRA));
-    await remove('stremio'); await act('editor.add.' + EXTRA);
+    await remove(FILLERS[0]); await act('editor.add.' + EXTRA);
     check('Native app can be pinned with stable ID', (await stored()).dock.includes(EXTRA) && (await state()).dock.length === 9);
     check('Native pin retains readable metadata for failed discovery', (await stored()).appRecords.some(a => a.id === EXTRA && a.name === UNSAFE_NAME));
     await current.reload(); await ready(); check('Native pin survives reload', (await state()).dock.includes(EXTRA));
@@ -537,7 +572,7 @@ try {
   });
   await run('Settings overview and visible choices', async () => {
     await page(); await scene('settings');
-    const expected = ['settings.group.background', 'settings.group.layout', 'settings.group.typography', 'settings.group.focus', 'settings.editor', 'settings.group.samsung'];
+    const expected = ['settings.group.background', 'settings.group.layout', 'settings.group.typography', 'settings.group.focus', 'settings.editor', 'settings.group.lg'];
     check('Overview has all six settings groups', same((await call('actions')).filter(a => expected.includes(a)).sort(), expected.slice().sort()));
     const specs = {
       background: { bg: ['dark', 'light', 'photo'] },
@@ -565,13 +600,13 @@ try {
     check('All five rotation modes are visible together', same(rotationRows.map(r => r.action).sort(), ['fixed', 'open', '5', '15', '60'].map(v => 'rotation.' + v).sort()), rotationRows);
     await nav('back');
     check('Rotation Back restores its Background row', (await state()).settingsGroup === 'background' && (await state()).focusAction === 'background.rotation', await call('where'));
-    await group('samsung');
-    const samsungActions = await call('actions');
-    check('Samsung group shows both native actions', samsungActions.includes('samsung.home') && samsungActions.includes('samsung.settings'));
+    await group('lg');
+    const lgActions = await call('actions');
+    check('LG group shows both native actions', lgActions.includes('lg.home') && lgActions.includes('lg.settings'));
   });
   await run('Settings focus never changes the applied Home', async () => {
     await page();
-    for (const name of ['background', 'layout', 'typography', 'focus', 'samsung']) {
+    for (const name of ['background', 'layout', 'typography', 'focus', 'lg']) {
       await group(name); const before = await settingsSnapshot();
       const visited = new Set();
       for (const direction of ['right', 'right', 'down', 'left', 'left', 'down', 'right', 'right', 'down', 'left', 'up', 'up', 'up', 'right']) {
@@ -589,7 +624,7 @@ try {
       await nav('back');
       check(name + ' Back cancels the unconfirmed choice', same(await settingsSnapshot(), before) && (await state()).focusAction === 'settings.group.' + name);
     }
-    check('Browsing Samsung does not launch a native app', (await current.evaluate(() => __tv.calls.length)) === 0);
+    check('Browsing LG does not launch a native app', (await current.evaluate(() => __tv.calls.length)) === 0);
     await group('background'); await act('background.rotation'); const before = await settingsSnapshot();
     await nav('down', 'down', 'up', 'right', 'left');
     check('Rotation arrows do not save a mode', same(await settingsSnapshot(), before));
@@ -756,7 +791,7 @@ try {
     for (const width of [1920, 1280]) {
       await current.setViewportSize({ width, height: width * 9 / 16 });
       await current.waitForFunction(w => Math.abs(document.getElementById('stage').getBoundingClientRect().width - w) < 1, width);
-      for (const name of ['background', 'layout', 'typography', 'focus', 'samsung', 'rotation']) {
+      for (const name of ['background', 'layout', 'typography', 'focus', 'lg', 'rotation']) {
         await group(name === 'rotation' ? 'background' : name);
         if (name === 'rotation') await act('background.rotation');
         const geometry = await current.evaluate(() => {
@@ -984,7 +1019,7 @@ try {
   await run('Physical-key repeats and Back hierarchy', async () => {
     await page(); await editor(); await remove('netflix');
     await current.keyboard.down('Enter'); await current.keyboard.down('Enter');
-    check('Held OK restores once without removing again', (await state()).dock.includes('netflix') && (await state()).dock.length === 9);
+    check('Held OK restores once without removing again', (await state()).dock.includes('netflix') && (await state()).dock.length === PRIMARY.length);
     await current.keyboard.up('Enter');
     await current.keyboard.down('Escape'); await current.keyboard.down('Escape');
     check('Held Back closes one layer only', (await call('where')).view === 'settings' && (await state()).focusAction === 'settings.editor');
@@ -1011,8 +1046,8 @@ try {
     await current.evaluate(() => { __setHidden(true); document.getElementById('stage').blur(); __setHidden(false); window.dispatchEvent(new Event('focus')); });
     const focus = (await state()).focusAction; await current.keyboard.press('ArrowDown');
     check('Warm return restores remote focus', (await state()).focusAction !== focus && (await call('where')).focusCount === 1);
-    const clock = await current.locator('#caption .clock').textContent();
-    check('Live 12-hour clock has no AM/PM', /^\s*\d{1,2}:\d{2}\s*$/.test(clock), clock);
+    const clock = await current.locator('#caption .clock').textContent(), hours = await current.evaluate(() => new Date().getHours());
+    check('Live 24-hour clock has no AM/PM', /^\s*([01]?\d|2[0-3]):[0-5]\d\s*$/.test(clock) && Number(clock.trim().split(':')[0]) === hours, { clock, hours });
   });
   await run('Open rotation and browser fallback', async () => {
     await page({ seed: baseline({ mode: 'open' }) }); check('Open mode advances at cold start', (await state()).wallpaper === walls[1].id);

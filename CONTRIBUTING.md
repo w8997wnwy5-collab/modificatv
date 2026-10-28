@@ -1,19 +1,19 @@
 # Contributing to CleanFrame
 
-CleanFrame was built for one Samsung The Frame, with very little work on portability. Use it at your own risk and treat it as a starting point for your own version. Forks and adaptations are encouraged. Contributions back to this repo should keep the remote experience simple and state what has actually been tested.
+CleanFrame was built for one Samsung The Frame, with very little work on portability; this repository adapts it to LG webOS, starting with one LG 50UQ75006LF. Use it at your own risk and treat it as a starting point for your own version. Forks and adaptations are encouraged. Contributions back to this repo should keep the remote experience simple and state what has actually been tested.
 
 ## Start in the browser
 
-Use the README's public-font setup. Keep changes in `app/` and the maintained tools in `scripts/`. Use your browser to develop interface changes.
+Use the README's public-font setup. Keep changes in `app/`, the TV service in `service/` and the maintained tools in `scripts/`. Use your browser to develop interface changes.
 
 ```sh
 npm ci
 npm run dev:public
 npm run check
-npm run check:tools
 npx playwright install chromium
 CLEANFRAME_PUBLIC_FONTS=1 npm run check:browser
 npm run check:public
+npm run package
 ```
 
 Keep runtime JavaScript ES5-compatible. Use existing focus, panel and preference logic. A new CSS/DOM API needs target-device evidence before it becomes a compatibility claim. Keep new dependencies in development tooling unless the runtime need is clear.
@@ -26,9 +26,9 @@ A pull request should explain the resulting behaviour, the checks run and any un
 
 ## Device work and privacy
 
-Use your own Samsung account, app identity, author certificate and distributor certificate. Follow the staged setup guide and keep native Home/startup experiments separate from UI work. Each TV owner decides whether and when to permit interruptions or settings changes.
+Use your own LG developer account and Developer Mode session, following the README. Rooting, Home-button and startup experiments are outside this app. Each TV owner decides whether and when to permit installs, interruptions or settings changes.
 
-Keep passwords, tokens, signing keys, serial numbers, DUIDs, addresses and original native settings out of issues, screenshots and PRs. Keep a private setup/recovery record. Report security issues through GitHub's private vulnerability reporting if enabled, or an established private channel with the maintainer; do not attach credentials to a public issue.
+Keep passwords, Developer Mode passphrases, tokens, keys, serial numbers, device IDs and addresses out of issues, screenshots and PRs. Report security issues through GitHub's private vulnerability reporting if enabled, or an established private channel with the maintainer; do not attach credentials to a public issue.
 
 ## Assets and licences
 
