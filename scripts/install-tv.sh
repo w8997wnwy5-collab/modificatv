@@ -98,10 +98,17 @@ key() {
   [ -f "$KEY" ] && return
   say "Prendo la chiave della TV dal Key Server..."
   mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
-  fetch "http://$IP:$KEY_PORT/webos_rsa" > "$KEY.new" 2>/dev/null || {
-    rm -f "$KEY.new"
-    fail "Non trovo la TV su $IP. Sulla TV, in Developer Mode, attiva Key Server; il telefono deve essere sullo stesso Wi-Fi. Su iPhone/iPad: Impostazioni > Privacy e sicurezza > Rete locale > attiva iSH."
-  }
+  tries=0
+  until fetch "http://$IP:$KEY_PORT/webos_rsa" > "$KEY.new" 2>/dev/null; do
+    tries=$((tries + 1))
+    if [ "$tries" -ge 6 ]; then
+      rm -f "$KEY.new"
+      fail "Non trovo la TV su $IP. Sulla TV, in Developer Mode, attiva Key Server; il telefono deve essere sullo stesso Wi-Fi. Su iPhone/iPad: Impostazioni > Privacy e sicurezza > Rete locale > attiva iSH."
+    fi
+    # iOS asks once for local network access, and the attempt made while it asks fails.
+    if [ "$tries" -eq 1 ]; then say "La TV non risponde ancora. Se iPhone o iPad chiede l'accesso alla rete locale, tocca Consenti. Riprovo..."; fi
+    sleep 5
+  done
   chmod 600 "$KEY.new"
   stty -echo 2>/dev/null || true
   ask "Passphrase mostrata in Developer Mode: "
@@ -113,6 +120,7 @@ key() {
 }
 
 mkdir -p "$WORK"
+say "CleanFrame per TV LG. Tieni questa app aperta e lo schermo acceso fino alla fine."
 tools
 IP=${CLEANFRAME_TV_IP:-}
 if [ -z "$IP" ]; then

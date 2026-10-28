@@ -31,21 +31,28 @@ L'installazione usa la **Modalità sviluppatore** ufficiale di LG: non modifica 
 ## Cosa ti serve
 
 - La TV e un **iPhone o iPad**, un telefono Android o un computer (Windows, Mac o Linux), collegati **alla stessa rete** (lo stesso Wi-Fi o router). Servono solo per installare l'app: dopo, CleanFrame funziona da sola sulla TV.
-- Un **account sviluppatore LG**, gratuito.
+- Un **account LG con email e password**: va bene quello che usi già sulla TV.
 - Il pacchetto dell'app, il file **`io.cleanframe.lg_0.6.1_all.ipk`** (passo 3).
 
-## Passo 1 — Crea l'account sviluppatore LG
+## Passo 1 — Attiva il tuo account LG come sviluppatore (gratis)
 
-1. Dal telefono o dal computer apri [webostv.developer.lge.com](https://webostv.developer.lge.com), scegli **Sign In** e crea un account con la tua email. Come Paese scegli quello della TV (per esempio la Svizzera).
-2. Conferma l'indirizzo email dal messaggio che ricevi.
+L'account sviluppatore è un normale account LG: va bene quello che hai già creato sulla TV. Basta accedere una volta al sito LG per sviluppatori.
+
+1. Dal telefono apri [webostv.developer.lge.com](https://webostv.developer.lge.com). Il sito è uno solo per tutti i Paesi, Svizzera compresa.
+2. Tocca **Sign In** in alto a destra (sul telefono può essere nel menu ☰). Si apre la pagina di accesso LG.
+3. Accedi con l'**email** e la **password** del tuo account LG. Se ti chiede il Paese, scegli lo stesso della TV (per esempio **Svizzera**).
+4. Se il sito chiede di accettare le condizioni, accettale. Quando torni sul sito da connesso, hai finito.
+
+Non hai un account LG, oppure sulla TV accedi con Google, Apple o Facebook (quindi senza una password LG)? Al punto 3 scegli **Create Account**: indica il Paese, accetta le condizioni, inserisci email e password, conferma di avere almeno 18 anni e apri il link che ricevi via email. L'app Developer Mode accetta solo email e password.
 
 ## Passo 2 — Attiva la Modalità sviluppatore sulla TV
 
-1. Sulla TV apri **LG Content Store** (lo store delle app; la TV usa già quello del tuo Paese), cerca **Developer Mode** e installala.
-2. Apri **Developer Mode** e accedi con l'account del passo 1.
-3. Attiva **Dev Mode Status**. La TV chiede di riavviarsi: conferma.
-4. Riapri **Developer Mode** e attiva **Key Server**.
-5. Lascia aperta questa schermata: ti servono l'**IP** della TV e la **Passphrase** (6 caratteri; maiuscole e minuscole contano).
+1. Premi **Home** sul telecomando e apri **App** (l'LG Content Store; la TV usa già quello del tuo Paese).
+2. Cerca **Developer Mode** e installala: è gratuita.
+3. Apri **Developer Mode** e accedi con l'email e la password del passo 1. Se ti dice di accedere prima al sito per sviluppatori, ripeti il passo 1 e riprova dopo qualche minuto.
+4. Attiva **Dev Mode Status** e conferma il riavvio. La TV si spegne e si riaccende.
+5. Riapri **Developer Mode** (Home → elenco delle app) e attiva **Key Server**.
+6. Annota l'**IP** della TV (per esempio `192.168.1.23`) e la **Passphrase** (6 caratteri; maiuscole e minuscole contano). Lascia aperta questa schermata mentre installi.
 
 ## Passo 3 — Scarica il pacchetto
 
@@ -171,7 +178,7 @@ cd ~/storage/downloads
 
 ## Tieni attiva la Modalità sviluppatore
 
-La Modalità sviluppatore dura un tempo limitato, indicato nell'app **Developer Mode** (nelle versioni recenti circa 1000 ore, una quarantina di giorni). Ogni tanto apri **Developer Mode** sulla TV e premi **EXTEND** (serve la connessione a internet, non il computer). Se il tempo scade, la TV rimuove CleanFrame: riattiva la modalità e reinstalla l'app (passi 2 e 4); dovrai reimpostare le preferenze.
+La Modalità sviluppatore dura un tempo limitato, indicato nell'app **Developer Mode** (nelle versioni recenti circa 1000 ore, una quarantina di giorni). Ogni tanto apri **Developer Mode** sulla TV e premi **EXTEND** (serve la connessione a internet, non il computer). La modalità si spegne anche se la TV viene riavviata 10 volte senza connessione a internet. Se il tempo scade, la TV rimuove CleanFrame: riattiva la modalità e reinstalla l'app (passi 2 e 4); dovrai reimpostare le preferenze.
 
 ## Aggiornare o disinstallare
 

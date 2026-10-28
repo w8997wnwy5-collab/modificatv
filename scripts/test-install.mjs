@@ -46,13 +46,14 @@ function tarFiles(gz) {
   return files;
 }
 
-async function fakeTv(dir) {
+async function fakeTv(dir, { refuseKeys = 0 } = {}) {
   execFileSync('ssh-keygen', ['-q', '-t', 'rsa', '-b', '2048', '-m', 'PEM', '-N', PASSPHRASE, '-C', '', '-f', join(dir, 'webos_rsa')]);
   execFileSync('ssh-keygen', ['-q', '-t', 'ed25519', '-N', '', '-C', '', '-f', join(dir, 'host')]);
   const allowed = ssh2.utils.parseKey(readFileSync(join(dir, 'webos_rsa.pub')));
   const tv = { commands: [], ptys: 0, uploads: [], installed: null, removed: false };
   const keys = createServer((req, res) => {
     if (req.url !== '/webos_rsa') { res.writeHead(404).end(); return; }
+    if (refuseKeys > 0) { refuseKeys--; res.writeHead(503).end(); return; }
     res.writeHead(200, { 'Content-Type': 'text/plain' }).end(readFileSync(join(dir, 'webos_rsa')));
   });
   const server = new ssh2.Server({ hostKeys: [readFileSync(join(dir, 'host'))] }, client => {
@@ -179,5 +180,19 @@ test('a wrong passphrase stops before anything reaches the TV', { skip: !hasSsh 
     assert.notEqual(result.code, 0);
     assert.match(result.out, /Passphrase sbagliata/);
     assert.deepEqual(tv.commands, []);
+  } finally { await tv.close(); }
+});
+
+test('the Key Server is tried again while iOS asks for local network access', { skip: !hasSsh && 'needs OpenSSH and tar' }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'cleanframe-install-')), home = join(dir, 'home');
+  mkdirSync(home);
+  const tv = await fakeTv(dir, { refuseKeys: 1 });
+  try {
+    const ipk = join(dir, 'given.ipk');
+    writeFileSync(ipk, '!<arch>\n');  // The synthetic TV accepts any package.
+    const result = await run([ipk], { ...tv.env, HOME: home, TMPDIR: dir }, PASSPHRASE + '\n');
+    assert.equal(result.code, 0, result.out);
+    assert.match(result.out, /Consenti/);
+    assert.equal(tv.uploads.length, 1);
   } finally { await tv.close(); }
 });
